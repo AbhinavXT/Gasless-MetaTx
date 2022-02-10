@@ -34,12 +34,10 @@ let biconomy
 
 const mint = () => {
   const [currentAccount, setCurrentAccount] = useState('')
-  const [correctNetwork, setCorrectNetwork] = useState(false)
   const [selectedAddress, setSelectedAddress] = useState('')
 
   const init = async () => {
     if (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask) {
-      connectWallet()
       const provider = window['ethereum']
       await provider.enable()
 
@@ -77,6 +75,7 @@ const mint = () => {
     } else {
       console.log('Metamask not installed')
     }
+    init()
   }
 
   const mintMeta = async () => {
@@ -222,7 +221,7 @@ const mint = () => {
       {currentAccount === '' ? (
         <button
           className="mb-10 rounded-lg bg-black py-3 px-12 text-2xl font-bold shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
-          onClick={init}
+          onClick={connectWallet}
         >
           Initialize App
         </button>
