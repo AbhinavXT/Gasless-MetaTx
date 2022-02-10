@@ -37,55 +37,47 @@ const mint = () => {
   const [correctNetwork, setCorrectNetwork] = useState(false)
   const [selectedAddress, setSelectedAddress] = useState('')
 
-  useEffect(() => {
-    const init = async () => {
-      if (
-        typeof window.ethereum !== 'undefined' &&
-        window.ethereum.isMetaMask
-      ) {
-        checkIfWalletIsConnected()
-        checkCorrectNetwork()
+  const init = async () => {
+    if (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask) {
+      connectWallet()
+      const provider = window['ethereum']
+      await provider.enable()
 
-        const provider = window['ethereum']
-        await provider.enable()
+      biconomy = new Biconomy(window.ethereum, {
+        apiKey: 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
+        debug: true,
+      })
 
-        biconomy = new Biconomy(window.ethereum, {
-          apiKey: 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
-          debug: true,
+      ethersProvider = new ethers.providers.Web3Provider(biconomy)
+
+      walletProvider = new ethers.providers.Web3Provider(window.ethereum)
+      walletSigner = walletProvider.getSigner()
+
+      let userAddress = await walletSigner.getAddress()
+      setSelectedAddress(userAddress)
+
+      //console.log('userAddress', selectedAddress)
+
+      biconomy
+        .onEvent(biconomy.READY, async () => {
+          contract = new ethers.Contract(
+            nftContractAddress,
+            NFT.abi,
+            biconomy.getSignerByAddress(userAddress)
+          )
+
+          console.log(contract)
+
+          contractInterface = new ethers.utils.Interface(NFT.abi)
         })
-
-        ethersProvider = new ethers.providers.Web3Provider(biconomy)
-
-        walletProvider = new ethers.providers.Web3Provider(window.ethereum)
-        walletSigner = walletProvider.getSigner()
-
-        let userAddress = await walletSigner.getAddress()
-        setSelectedAddress(userAddress)
-
-        //console.log('userAddress', selectedAddress)
-
-        biconomy
-          .onEvent(biconomy.READY, async () => {
-            contract = new ethers.Contract(
-              nftContractAddress,
-              NFT.abi,
-              biconomy.getSignerByAddress(userAddress)
-            )
-
-            console.log(contract)
-
-            contractInterface = new ethers.utils.Interface(NFT.abi)
-          })
-          .onEvent(biconomy.ERROR, (error, message) => {
-            console.log(message)
-            console.log(error)
-          })
-      } else {
-        console.log('Metamask not installed')
-      }
+        .onEvent(biconomy.ERROR, (error, message) => {
+          console.log(message)
+          console.log(error)
+        })
+    } else {
+      console.log('Metamask not installed')
     }
-    init()
-  }, [])
+  }
 
   const mintMeta = async () => {
     try {
@@ -177,25 +169,6 @@ const mint = () => {
     }
   }
 
-  // Checks if wallet is connected
-  const checkIfWalletIsConnected = async () => {
-    const { ethereum } = window
-    if (ethereum) {
-      console.log('Got the ethereum obejct: ', ethereum)
-    } else {
-      console.log('No Wallet found. Connect Wallet')
-    }
-
-    const accounts = await ethereum.request({ method: 'eth_accounts' })
-
-    if (accounts.length !== 0) {
-      console.log('Found authorized Account: ', accounts[0])
-      setCurrentAccount(accounts[0])
-    } else {
-      console.log('No authorized account found')
-    }
-  }
-
   // Calls Metamask to connect wallet on clicking Connect Wallet button
   const connectWallet = async () => {
     try {
@@ -227,24 +200,6 @@ const mint = () => {
     }
   }
 
-  // Checks if wallet is connected to the correct network
-  const checkCorrectNetwork = async () => {
-    const { ethereum } = window
-    let chainId = await ethereum.request({ method: 'eth_chainId' })
-    console.log('Connected to chain:' + chainId)
-
-    const kovanChainId = '0x2a'
-
-    const devChainId = 1337
-    const localhostChainId = `0x${Number(devChainId).toString(16)}`
-
-    if (chainId !== kovanChainId && chainId !== localhostChainId) {
-      setCorrectNetwork(false)
-    } else {
-      setCorrectNetwork(true)
-    }
-  }
-
   return (
     <div className="flex min-h-screen flex-col items-center bg-[#0B132B] pt-32 text-[#d3d3d3]">
       <Head>
@@ -262,30 +217,22 @@ const mint = () => {
           <path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5 8.186 1.113zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923l6.5 2.6zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464L7.443.184z" />
         </svg>
       </div>
-      <h2 className="mb-20 mt-12 text-3xl font-bold">
-        Mint your Eternal Domain NFT!
-      </h2>
+      <h2 className="mt-12 text-3xl font-bold">Mint your NFT!</h2>
+      <h2 className="mb-20 mt-12 text-xl">Please connect to the kovan chain</h2>
       {currentAccount === '' ? (
         <button
           className="mb-10 rounded-lg bg-black py-3 px-12 text-2xl font-bold shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
-          onClick={connectWallet}
+          onClick={init}
         >
-          Connect Wallet
+          Initialize App
         </button>
-      ) : correctNetwork ? (
+      ) : (
         <button
           className="mb-10 rounded-lg bg-black py-3 px-12 text-2xl font-bold shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
           onClick={mintMeta}
         >
           Mint NFT
         </button>
-      ) : (
-        <div className="mb-20 flex flex-col items-center justify-center gap-y-3 text-2xl font-bold">
-          <div>----------------------------------------</div>
-          <div>Please connect to the Kovan testnet</div>
-          <div>and reload the page</div>
-          <div>----------------------------------------</div>
-        </div>
       )}
     </div>
   )
