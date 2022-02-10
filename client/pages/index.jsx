@@ -205,7 +205,7 @@ const mint = () => {
   return (
     <div className="flex min-h-screen flex-col items-center bg-[#0B132B] pt-32 text-[#d3d3d3]">
       <Head>
-        <title>Eternal NFT</title>
+        <title>Gasless NFT</title>
         <meta name="viewport" content="initial-scale=1.0, width=device-width" />
       </Head>
       <div className="trasition transition duration-500 ease-in-out hover:rotate-180 hover:scale-105">
