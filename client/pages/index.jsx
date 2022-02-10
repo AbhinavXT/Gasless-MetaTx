@@ -75,7 +75,6 @@ const mint = () => {
     } else {
       console.log('Metamask not installed')
     }
-    init()
   }
 
   const mintMeta = async () => {
@@ -198,6 +197,10 @@ const mint = () => {
       console.log('Error connecting to metamask', error)
     }
   }
+
+  useEffect(() => {
+    init()
+  })
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-[#0B132B] pt-32 text-[#d3d3d3]">
