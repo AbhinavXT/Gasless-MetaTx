@@ -64,8 +64,6 @@ const mint = () => {
             biconomy.getSignerByAddress(userAddress)
           )
 
-          console.log(contract)
-
           contractInterface = new ethers.utils.Interface(NFT.abi)
         })
         .onEvent(biconomy.ERROR, (error, message) => {
@@ -91,8 +89,6 @@ const mint = () => {
         let functionSignature =
           contractInterface.encodeFunctionData('createEternalNFT')
 
-        console.log('Function Signature Done')
-
         let message = {}
         message.nonce = parseInt(nonce)
         message.from = userAddress
@@ -109,8 +105,6 @@ const mint = () => {
           primaryType: 'MetaTransaction',
           message: message,
         })
-
-        console.log('Data to sign Done')
 
         let signature = await walletProvider.send('eth_signTypedData_v3', [
           userAddress,
@@ -200,7 +194,7 @@ const mint = () => {
 
   useEffect(() => {
     init()
-  })
+  }, [])
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-[#0B132B] pt-32 text-[#d3d3d3]">
