@@ -94,8 +94,6 @@ const mint = () => {
         message.from = userAddress
         message.functionSignature = functionSignature
 
-        console.log('Message Done')
-
         const dataToSign = JSON.stringify({
           types: {
             EIP712Domain: domainType,
@@ -110,9 +108,8 @@ const mint = () => {
           userAddress,
           dataToSign,
         ])
-        let { r, s, v } = getSignatureParameters(signature)
 
-        console.log('Signature Done')
+        let { r, s, v } = getSignatureParameters(signature)
 
         sendSignedTransaction(userAddress, functionSignature, r, s, v)
       } else {
@@ -134,6 +131,12 @@ const mint = () => {
     var v = '0x'.concat(signature.slice(130, 132))
     v = ethers.BigNumber.from(v).toNumber()
     if (![27, 28].includes(v)) v += 27
+
+    console.log('Signature', signature)
+    console.log('r', r)
+    console.log('s', s)
+    console.log('v', v)
+
     return {
       r: r,
       s: s,
@@ -220,7 +223,7 @@ const mint = () => {
           className="mb-10 rounded-lg bg-black py-3 px-12 text-2xl font-bold shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
           onClick={connectWallet}
         >
-          Initialize App
+          Initialize DApp
         </button>
       ) : (
         <button
