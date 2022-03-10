@@ -3,6 +3,8 @@ import Head from 'next/head'
 import { useState, useEffect } from 'react'
 import { nftContractAddress } from '../config.js'
 import { ethers } from 'ethers'
+import axios from 'axios'
+import { networks } from '../utils/networks'
 
 import NFT from '../utils/EternalNFT.json'
 
@@ -35,12 +37,15 @@ let biconomy
 const mint = () => {
   const [currentAccount, setCurrentAccount] = useState('')
   const [selectedAddress, setSelectedAddress] = useState('')
+  const [mintedNFT, setMintedNFT] = useState(null)
+  const [network, setNetwork] = useState('')
 
   const init = async () => {
     if (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask) {
       const provider = window['ethereum']
-      await provider.enable()
+      //await provider.enable()
 
+      //debugger
       biconomy = new Biconomy(window.ethereum, {
         apiKey: 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
         debug: true,
@@ -53,8 +58,6 @@ const mint = () => {
 
       let userAddress = await walletSigner.getAddress()
       setSelectedAddress(userAddress)
-
-      //console.log('userAddress', selectedAddress)
 
       biconomy
         .onEvent(biconomy.READY, async () => {
@@ -75,13 +78,89 @@ const mint = () => {
     }
   }
 
+  // Checks if wallet is connected to the correct network
+  const checkIfWalletIsConnected = async () => {
+    const { ethereum } = window
+
+    if (!ethereum) {
+      console.log('Make sure you have metamask!')
+      return
+    } else {
+      console.log('We have the ethereum object', ethereum)
+    }
+
+    const accounts = await ethereum.request({ method: 'eth_accounts' })
+
+    if (accounts.length !== 0) {
+      const account = accounts[0]
+      console.log('Found an authorized account:', account)
+      setCurrentAccount(account)
+    } else {
+      console.log('No authorized account found')
+    }
+
+    // This is the new part, we check the user's network chain ID
+    const chainId = await ethereum.request({ method: 'eth_chainId' })
+    setNetwork(networks[chainId])
+
+    ethereum.on('chainChanged', handleChainChanged)
+
+    // Reload the page when they change networks
+    function handleChainChanged(_chainId) {
+      window.location.reload()
+    }
+  }
+
+  const switchNetwork = async () => {
+    if (window.ethereum) {
+      try {
+        // Try to switch to the Mumbai testnet
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x2a' }], // Check networks.js for hexadecimal network ids
+        })
+      } catch (error) {
+        // This error code means that the chain we want has not been added to MetaMask
+        // In this case we ask the user to add it to their MetaMask
+        if (error.code === 4902) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [
+                {
+                  chainId: '0x2a',
+                  chainName: 'Kovan Testnet',
+                  rpcUrls: [
+                    'https://kovan.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
+                  ],
+                  nativeCurrency: {
+                    name: 'Ethereum',
+                    symbol: 'ETH',
+                    decimals: 18,
+                  },
+                  blockExplorerUrls: ['https://kovan.etherscan.io/'],
+                },
+              ],
+            })
+          } catch (error) {
+            console.log(error)
+          }
+        }
+        console.log(error)
+      }
+    } else {
+      // If window.ethereum is not found then MetaMask is not installed
+      alert(
+        'MetaMask is not installed. Please install it to use this app: https://metamask.io/download.html'
+      )
+    }
+  }
+
   const mintMeta = async () => {
     try {
       const { ethereum } = window
 
       if (ethereum) {
-        //const signer = ethersProvider.getSigner()
-
         let userAddress = selectedAddress
 
         let nonce = await contract.getNonce(userAddress)
@@ -155,9 +234,11 @@ const mint = () => {
         { gasLimit: 1000000 }
       )
 
-      await tx.wait(1)
+      const txData = await tx.wait(1)
+      const tokenId = txData.events[0].args.tokenId.toString()
+      console.log(tokenId)
+      getMintedNFT(tokenId)
       console.log('Transaction hash : ', tx.hash)
-      //let confirmation = await tx.wait()
       console.log(tx)
     } catch (error) {
       console.log(error)
@@ -173,30 +254,39 @@ const mint = () => {
         console.log('Metamask not detected')
         return
       }
-      let chainId = await ethereum.request({ method: 'eth_chainId' })
-      console.log('Connected to chain:' + chainId)
-
-      const kovanChainId = '0x2a'
-
-      const devChainId = 1337
-      const localhostChainId = `0x${Number(devChainId).toString(16)}`
-
-      if (chainId !== kovanChainId && chainId !== localhostChainId) {
-        alert('You are not connected to the kovan Testnet!')
-        return
-      }
 
       const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
 
       console.log('Found account', accounts[0])
       setCurrentAccount(accounts[0])
+      switchNetwork()
+      init()
     } catch (error) {
       console.log('Error connecting to metamask', error)
     }
   }
 
+  // Gets the minted NFT data
+  const getMintedNFT = async (tokenId) => {
+    try {
+      const { ethereum } = window
+
+      if (ethereum) {
+        let tokenUri = await contract.tokenURI(tokenId)
+        let data = await axios.get(tokenUri)
+        let meta = data.data
+
+        setMintedNFT(meta.image)
+      } else {
+        console.log("Ethereum object doesn't exist!")
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
   useEffect(() => {
-    init()
+    checkIfWalletIsConnected()
   }, [])
 
   return (
@@ -217,22 +307,38 @@ const mint = () => {
         </svg>
       </div>
       <h2 className="mt-12 text-3xl font-bold">Mint your NFT!</h2>
-      <h2 className="mb-20 mt-12 text-xl">Please connect to the kovan chain</h2>
       {currentAccount === '' ? (
         <button
-          className="mb-10 rounded-lg bg-black py-3 px-12 text-2xl font-bold shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
+          className="mb-10 mt-20 rounded-lg bg-black py-3 px-12 text-2xl font-bold shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
           onClick={connectWallet}
         >
           Initialize DApp
         </button>
       ) : (
         <button
-          className="mb-10 rounded-lg bg-black py-3 px-12 text-2xl font-bold shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
+          className="mb-10 mt-20 rounded-lg bg-black py-3 px-12 text-2xl font-bold shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
           onClick={mintMeta}
         >
           Mint NFT
         </button>
       )}
+
+      <div className="mt-10">
+        {mintedNFT ? (
+          <div className="flex flex-col items-center justify-center">
+            <div className="mb-4 text-center text-lg font-semibold">
+              Your Eternal Domain Character
+            </div>
+            <img
+              src={mintedNFT}
+              alt=""
+              className="h-60 w-60 rounded-lg shadow-2xl shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
+            />
+          </div>
+        ) : (
+          <div></div>
+        )}
+      </div>
     </div>
   )
 }

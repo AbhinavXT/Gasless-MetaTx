@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.6;
+pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
@@ -48,9 +48,10 @@ contract EternalNFT is ERC721URIStorage, EIP712MetaTransaction("EternalNFT","1")
         'God'
     ];
 
-    constructor() ERC721("EternalNFT", "ENFT") {
+    constructor(address _trustedForwarder) ERC721("EternalNFT", "ENFT") {
         collectionName = name();
         collectionSymbol = symbol();
+        trustedForwarder = _trustedForwarder;
     }
 
     function random(string memory _input) internal pure returns(uint256) {
@@ -107,7 +108,6 @@ contract EternalNFT is ERC721URIStorage, EIP712MetaTransaction("EternalNFT","1")
             "data:application/json;base64,", json
         ));
 
-        console.log(finalTokenURI);
     
         _safeMint(msgSender(), newItemId);
         _setTokenURI(newItemId, finalTokenURI);

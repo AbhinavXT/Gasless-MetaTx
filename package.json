@@ -9,5 +9,9 @@
 		"ethereum-waffle": "^3.4.0",
 		"ethers": "^5.5.2",
 		"hardhat": "^2.8.0"
+	},
+	"dependencies": {
+		"@metamask/eth-sig-util": "^4.0.0",
+		"eth-sig-util": "^3.0.1"
 	}
 }

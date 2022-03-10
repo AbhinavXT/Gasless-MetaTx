@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.6;
+pragma solidity 0.8.10;
 
 import "./libraries/EIP712Base.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
