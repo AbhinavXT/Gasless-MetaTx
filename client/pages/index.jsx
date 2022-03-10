@@ -111,6 +111,26 @@ const mint = () => {
     }
   }
 
+  // Calls Metamask to connect wallet on clicking Connect Wallet button
+  const connectWallet = async () => {
+    try {
+      const { ethereum } = window
+
+      if (!ethereum) {
+        console.log('Metamask not detected')
+        return
+      }
+
+      const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
+
+      console.log('Found account', accounts[0])
+      setCurrentAccount(accounts[0])
+      switchNetwork()
+    } catch (error) {
+      console.log('Error connecting to metamask', error)
+    }
+  }
+
   const switchNetwork = async () => {
     if (window.ethereum) {
       try {
@@ -245,27 +265,6 @@ const mint = () => {
     }
   }
 
-  // Calls Metamask to connect wallet on clicking Connect Wallet button
-  const connectWallet = async () => {
-    try {
-      const { ethereum } = window
-
-      if (!ethereum) {
-        console.log('Metamask not detected')
-        return
-      }
-
-      const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
-
-      console.log('Found account', accounts[0])
-      setCurrentAccount(accounts[0])
-      switchNetwork()
-      init()
-    } catch (error) {
-      console.log('Error connecting to metamask', error)
-    }
-  }
-
   // Gets the minted NFT data
   const getMintedNFT = async (tokenId) => {
     try {
@@ -287,7 +286,11 @@ const mint = () => {
 
   useEffect(() => {
     checkIfWalletIsConnected()
-  }, [])
+
+    if (network === 'Kovan') {
+      init()
+    }
+  }, [currentAccount, network])
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-[#0B132B] pt-32 text-[#d3d3d3]">
@@ -332,7 +335,7 @@ const mint = () => {
             <img
               src={mintedNFT}
               alt=""
-              className="h-60 w-60 rounded-lg shadow-2xl shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
+              className="h-60 w-60 rounded-lg shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
             />
           </div>
         ) : (
