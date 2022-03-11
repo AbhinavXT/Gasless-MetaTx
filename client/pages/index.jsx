@@ -287,7 +287,7 @@ const mint = () => {
   useEffect(() => {
     checkIfWalletIsConnected()
 
-    if (network === 'Kovan') {
+    if (currentAccount !== '' && network === 'Kovan') {
       console.log('init')
       init()
     }
