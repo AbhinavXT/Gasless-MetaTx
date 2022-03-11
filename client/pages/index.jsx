@@ -149,7 +149,7 @@ const mint = () => {
               params: [
                 {
                   chainId: '0x2a',
-                  chainName: 'Kovan Testnet',
+                  chainName: 'Kovan',
                   rpcUrls: [
                     'https://kovan.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
                   ],
@@ -288,6 +288,7 @@ const mint = () => {
     checkIfWalletIsConnected()
 
     if (network === 'Kovan') {
+      console.log('init')
       init()
     }
   }, [currentAccount, network])
