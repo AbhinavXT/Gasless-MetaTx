@@ -40,12 +40,14 @@ const mint = () => {
   const [mintedNFT, setMintedNFT] = useState(null)
   const [network, setNetwork] = useState('')
 
+  const [nftLoading, setNftLoading] = useState(null)
+  const [initLoading, setInitLoading] = useState(null)
+
   const init = async () => {
     if (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask) {
+      setInitLoading(0)
       const provider = window['ethereum']
-      //await provider.enable()
 
-      //debugger
       biconomy = new Biconomy(window.ethereum, {
         apiKey: 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
         debug: true,
@@ -68,6 +70,7 @@ const mint = () => {
           )
 
           contractInterface = new ethers.utils.Interface(NFT.abi)
+          setInitLoading(1)
         })
         .onEvent(biconomy.ERROR, (error, message) => {
           console.log(message)
@@ -178,6 +181,8 @@ const mint = () => {
 
   const mintMeta = async () => {
     try {
+      setNftLoading(0)
+      setMintedNFT(null)
       const { ethereum } = window
 
       if (ethereum) {
@@ -275,6 +280,7 @@ const mint = () => {
         let data = await axios.get(tokenUri)
         let meta = data.data
 
+        setNftLoading(1)
         setMintedNFT(meta.image)
       } else {
         console.log("Ethereum object doesn't exist!")
@@ -318,6 +324,12 @@ const mint = () => {
         >
           Connect Wallet
         </button>
+      ) : initLoading === 0 ? (
+        <div>
+          <button className="mb-10 mt-20 rounded-lg bg-black py-3 px-12 text-2xl font-bold shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105">
+            Initalizing....
+          </button>
+        </div>
       ) : (
         <button
           className="mb-10 mt-20 rounded-lg bg-black py-3 px-12 text-2xl font-bold shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
@@ -338,6 +350,10 @@ const mint = () => {
               alt=""
               className="h-60 w-60 rounded-lg shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
             />
+          </div>
+        ) : nftLoading === 0 ? (
+          <div className="text-lg font-bold">
+            Processing Your Transaction...
           </div>
         ) : (
           <div></div>
