@@ -48,10 +48,9 @@ contract EternalNFT is ERC721URIStorage, EIP712MetaTransaction("EternalNFT","1")
         'God'
     ];
 
-    constructor(address _trustedForwarder) ERC721("EternalNFT", "ENFT") {
+    constructor() ERC721("EternalNFT", "ENFT") {
         collectionName = name();
         collectionSymbol = symbol();
-        trustedForwarder = _trustedForwarder;
     }
 
     function random(string memory _input) internal pure returns(uint256) {
