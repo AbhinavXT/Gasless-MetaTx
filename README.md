@@ -11,7 +11,7 @@
     - [Cloning and installing dependencies](#cloning-and-installing-dependencies)
     - [Testing Contracts](#testing-contracts)
     - [Running the frontend](#running-the-frontend)
-    - [Environment variables (not needed for running project locally)](#environment-variables-not-needed-for-running-project-locally)
+    - [Environment variables](#environment-variables)
 
 ## Deployed Website url
 
@@ -69,7 +69,7 @@ cd client
 npm run dev
 ```
 
-### Environment variables (not needed for running project locally)
+### Environment variables
 
 ```
 ALCHEMY_KOVAN_URL = ''
