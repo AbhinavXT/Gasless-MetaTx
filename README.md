@@ -1,16 +1,13 @@
 # Gasless-NFT
 
 ## Table of Contents
-
-- [Gasless-NFT](#gasless-nft)
-  - [Table of Contents](#table-of-contents)
-  - [Deployed Website url](#deployed-website-url)
-  - [Deployed Contract Address](#deployed-contract-address)
-  - [Clone, Install and Build steps](#clone-install-and-build-steps)
-    - [Prerequisites](#prerequisites)
-    - [Cloning and installing dependencies](#cloning-and-installing-dependencies)
-    - [Running the frontend](#running-the-frontend)
-    - [Environment variables](#environment-variables)
+- [Deployed Website url](#deployed-website-url)
+- [Deployed Contract Address](#deployed-contract-address)
+- [Clone, Install and Build steps](#clone-install-and-build-steps)
+  - [Prerequisites](#prerequisites)
+  - [Cloning and installing dependencies](#cloning-and-installing-dependencies)
+  - [Running the frontend](#running-the-frontend)
+  - [Environment variables](#environment-variables)
 
 ## Deployed Website url
 
