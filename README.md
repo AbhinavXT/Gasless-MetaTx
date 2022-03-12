@@ -9,7 +9,6 @@
   - [Clone, Install and Build steps](#clone-install-and-build-steps)
     - [Prerequisites](#prerequisites)
     - [Cloning and installing dependencies](#cloning-and-installing-dependencies)
-    - [Testing Contracts](#testing-contracts)
     - [Running the frontend](#running-the-frontend)
     - [Environment variables](#environment-variables)
 
@@ -51,14 +50,6 @@ https://gasless-nft.vercel.app/
     cd client
     npm install
     ```
-
-### Testing Contracts
-
-For testing contracts run command:
-
-```
-npx hardhat test
-```
 
 ### Running the frontend
 
