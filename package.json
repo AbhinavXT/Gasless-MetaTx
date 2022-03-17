@@ -12,6 +12,8 @@
 	},
 	"dependencies": {
 		"@metamask/eth-sig-util": "^4.0.0",
+		"@opengsn/contracts": "^2.2.6",
+		"@opengsn/provider": "^2.2.6",
 		"eth-sig-util": "^3.0.1"
 	}
 }

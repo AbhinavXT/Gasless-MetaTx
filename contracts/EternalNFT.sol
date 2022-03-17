@@ -1,20 +1,24 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
+import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+
 import { Base64 } from "./libraries/Base64.sol";
 
 import "hardhat/console.sol"; 
 
-import "./EIP712MetaTransaction.sol";
+// import "./EIP712MetaTransaction.sol";
 
-contract EternalNFT is ERC721URIStorage, EIP712MetaTransaction("EternalNFT","1") {
+contract EternalNFT is ERC2771Context, ERC721URIStorage {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenId;
    
     string public collectionName;
     string public collectionSymbol;
+
+    //address trustedForwarder;
 
     string baseSvg = "<svg xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='xMinYMin meet' viewBox='0 0 350 350'><style>.base { fill: white; font-family: serif; font-size: 24px; }</style><rect width='100%' height='100%' fill='black' /><text x='50%' y='50%' class='base' dominant-baseline='middle' text-anchor='middle'>";
 
@@ -48,9 +52,8 @@ contract EternalNFT is ERC721URIStorage, EIP712MetaTransaction("EternalNFT","1")
         'God'
     ];
 
-    constructor() ERC721("EternalNFT", "ENFT") {
-        collectionName = name();
-        collectionSymbol = symbol();
+    constructor(address _trustedForwarder) ERC2771Context(_trustedForwarder) ERC721("EternalNFT", "ENFT") {
+        
     }
 
     function random(string memory _input) internal pure returns(uint256) {
@@ -108,11 +111,19 @@ contract EternalNFT is ERC721URIStorage, EIP712MetaTransaction("EternalNFT","1")
         ));
 
     
-        _safeMint(msgSender(), newItemId);
+        _safeMint(_msgSender(), newItemId);
         _setTokenURI(newItemId, finalTokenURI);
 
         _tokenId.increment();
 
         return newItemId;
+    }
+
+    function _msgSender() internal view override(Context, ERC2771Context) returns (address){
+        return ERC2771Context._msgSender();
+    }
+
+    function _msgData() internal view override(Context, ERC2771Context) returns (bytes calldata){
+        return ERC2771Context._msgData();
     }
 }

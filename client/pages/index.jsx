@@ -10,25 +10,25 @@ import NFT from '../utils/EternalNFT.json'
 
 import { Biconomy } from '@biconomy/mexa'
 
-const domainType = [
-  { name: 'name', type: 'string' },
-  { name: 'version', type: 'string' },
-  { name: 'verifyingContract', type: 'address' },
-  { name: 'salt', type: 'bytes32' },
-]
+// const domainType = [
+//   { name: 'name', type: 'string' },
+//   { name: 'version', type: 'string' },
+//   { name: 'verifyingContract', type: 'address' },
+//   { name: 'salt', type: 'bytes32' },
+// ]
 
-const metaTransactionType = [
-  { name: 'nonce', type: 'uint256' },
-  { name: 'from', type: 'address' },
-  { name: 'functionSignature', type: 'bytes' },
-]
+// const metaTransactionType = [
+//   { name: 'nonce', type: 'uint256' },
+//   { name: 'from', type: 'address' },
+//   { name: 'functionSignature', type: 'bytes' },
+// ]
 
-let domainData = {
-  name: 'EternalNFT',
-  version: '1',
-  verifyingContract: nftContractAddress,
-  salt: ethers.utils.hexZeroPad(ethers.BigNumber.from(42).toHexString(), 32),
-}
+// let domainData = {
+//   name: 'EternalNFT',
+//   version: '1',
+//   verifyingContract: nftContractAddress,
+//   salt: ethers.utils.hexZeroPad(ethers.BigNumber.from(42).toHexString(), 32),
+// }
 
 let ethersProvider, walletProvider, walletSigner
 let contract, contractInterface
@@ -46,13 +46,13 @@ const mint = () => {
   const init = async () => {
     if (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask) {
       setInitLoading(0)
-      //const provider = window['ethereum']
 
       biconomy = new Biconomy(window.ethereum, {
-        apiKey: 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
+        apiKey: 'RLejw36Yb.c150169b-5fe3-49bc-8f9f-96d5d25da09d',
         debug: true,
       })
 
+      // two providers one with biconomy andd other for the wallet signing the transaction
       ethersProvider = new ethers.providers.Web3Provider(biconomy)
 
       walletProvider = new ethers.providers.Web3Provider(window.ethereum)
@@ -61,6 +61,7 @@ const mint = () => {
       let userAddress = await walletSigner.getAddress()
       setSelectedAddress(userAddress)
 
+      // init dApp stuff like contracts and interface
       biconomy
         .onEvent(biconomy.READY, async () => {
           contract = new ethers.Contract(
@@ -188,34 +189,44 @@ const mint = () => {
       if (ethereum) {
         let userAddress = selectedAddress
 
-        let nonce = await contract.getNonce(userAddress)
+        let { data } = await contract.populateTransaction.createEternalNFT()
+        //console.log(data)
 
-        let functionSignature =
-          contractInterface.encodeFunctionData('createEternalNFT')
+        let provider = biconomy.getEthersProvider()
+        //console.log(provider)
 
-        let message = {}
-        message.nonce = parseInt(nonce)
-        message.from = userAddress
-        message.functionSignature = functionSignature
-
-        const dataToSign = JSON.stringify({
-          types: {
-            EIP712Domain: domainType,
-            MetaTransaction: metaTransactionType,
-          },
-          domain: domainData,
-          primaryType: 'MetaTransaction',
-          message: message,
+        let gasLimit = await provider.estimateGas({
+          to: nftContractAddress,
+          from: userAddress,
+          data: data,
         })
+        // console.log(gasLimit)
 
-        let signature = await walletProvider.send('eth_signTypedData_v3', [
-          userAddress,
-          dataToSign,
-        ])
+        let txParams = {
+          data: data,
+          to: nftContractAddress,
+          from: userAddress,
+          gasLimit: 10000000,
+          signatureType: 'EIP712_SIGN',
+        }
 
-        let { r, s, v } = getSignatureParameters(signature)
+        console.log(txParams)
 
-        sendSignedTransaction(userAddress, functionSignature, r, s, v)
+        let tx
+
+        try {
+          tx = await provider.send('eth_sendTransaction', [txParams])
+          //onsole.log(tx)
+        } catch (err) {
+          console.log('handle errors like signature denied here')
+          console.log(err)
+        }
+
+        console.log('Transaction hash : ', tx)
+
+        provider.once(tx, (transaction) => {
+          console.log(transaction)
+        })
       } else {
         console.log("Ethereum object doesn't exist!")
       }
@@ -224,71 +235,71 @@ const mint = () => {
     }
   }
 
-  const getSignatureParameters = (signature) => {
-    if (!ethers.utils.isHexString(signature)) {
-      throw new Error(
-        'Given value "'.concat(signature, '" is not a valid hex string.')
-      )
-    }
-    var r = signature.slice(0, 66)
-    var s = '0x'.concat(signature.slice(66, 130))
-    var v = '0x'.concat(signature.slice(130, 132))
-    v = ethers.BigNumber.from(v).toNumber()
-    if (![27, 28].includes(v)) v += 27
+  // const getSignatureParameters = (signature) => {
+  //   if (!ethers.utils.isHexString(signature)) {
+  //     throw new Error(
+  //       'Given value "'.concat(signature, '" is not a valid hex string.')
+  //     )
+  //   }
+  //   var r = signature.slice(0, 66)
+  //   var s = '0x'.concat(signature.slice(66, 130))
+  //   var v = '0x'.concat(signature.slice(130, 132))
+  //   v = ethers.BigNumber.from(v).toNumber()
+  //   if (![27, 28].includes(v)) v += 27
 
-    console.log('Signature', signature)
-    console.log('r', r)
-    console.log('s', s)
-    console.log('v', v)
+  //   console.log('Signature', signature)
+  //   console.log('r', r)
+  //   console.log('s', s)
+  //   console.log('v', v)
 
-    return {
-      r: r,
-      s: s,
-      v: v,
-    }
-  }
+  //   return {
+  //     r: r,
+  //     s: s,
+  //     v: v,
+  //   }
+  // }
 
-  const sendSignedTransaction = async (userAddress, functionData, r, s, v) => {
-    try {
-      let tx = await contract.executeMetaTransaction(
-        userAddress,
-        functionData,
-        r,
-        s,
-        v,
-        { gasLimit: 1000000 }
-      )
+  // const sendSignedTransaction = async (userAddress, functionData, r, s, v) => {
+  //   try {
+  //     let tx = await contract.executeMetaTransaction(
+  //       userAddress,
+  //       functionData,
+  //       r,
+  //       s,
+  //       v,
+  //       { gasLimit: 1000000 }
+  //     )
 
-      const txData = await tx.wait(1)
-      const tokenId = txData.events[0].args.tokenId.toString()
-      console.log(tokenId)
-      getMintedNFT(tokenId)
-      console.log('Transaction hash : ', tx.hash)
-      console.log(tx)
-    } catch (error) {
-      console.log(error)
-    }
-  }
+  //     const txData = await tx.wait(1)
+  //     const tokenId = txData.events[0].args.tokenId.toString()
+  //     console.log(tokenId)
+  //     getMintedNFT(tokenId)
+  //     console.log('Transaction hash : ', tx.hash)
+  //     console.log(tx)
+  //   } catch (error) {
+  //     console.log(error)
+  //   }
+  // }
 
   // Gets the minted NFT data
-  const getMintedNFT = async (tokenId) => {
-    try {
-      const { ethereum } = window
+  // const getMintedNFT = async (tokenId) => {
+  //   try {
+  //     const { ethereum } = window
 
-      if (ethereum) {
-        let tokenUri = await contract.tokenURI(tokenId)
-        let data = await axios.get(tokenUri)
-        let meta = data.data
+  //     if (ethereum) {
+  //       let tokenUri = await contract.tokenURI(tokenId)
+  //       let data = await axios.get(tokenUri)
+  //       let meta = data.data
 
-        setNftLoading(1)
-        setMintedNFT(meta.image)
-      } else {
-        console.log("Ethereum object doesn't exist!")
-      }
-    } catch (error) {
-      console.log(error)
-    }
-  }
+  //       setNftLoading(1)
+  //       setMintedNFT(meta.image)
+  //     } else {
+  //       console.log("Ethereum object doesn't exist!")
+  //     }
+  //   } catch (error) {
+  //     console.log(error)
+  //   }
+  // }
 
   useEffect(() => {
     checkIfWalletIsConnected()
