@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
+
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 
@@ -11,7 +11,7 @@ import "hardhat/console.sol";
 
 // import "./EIP712MetaTransaction.sol";
 
-contract EternalNFT is ERC2771Context, ERC721URIStorage {
+contract EternalNFT is ERC721URIStorage {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenId;
    
@@ -52,7 +52,7 @@ contract EternalNFT is ERC2771Context, ERC721URIStorage {
         'God'
     ];
 
-    constructor(address _trustedForwarder) ERC2771Context(_trustedForwarder) ERC721("EternalNFT", "ENFT") {
+    constructor() ERC721("EternalNFT", "ENFT") {
         
     }
 
@@ -111,19 +111,11 @@ contract EternalNFT is ERC2771Context, ERC721URIStorage {
         ));
 
     
-        _safeMint(_msgSender(), newItemId);
+        _safeMint(msg.sender, newItemId);
         _setTokenURI(newItemId, finalTokenURI);
 
         _tokenId.increment();
 
         return newItemId;
-    }
-
-    function _msgSender() internal view override(Context, ERC2771Context) returns (address){
-        return ERC2771Context._msgSender();
-    }
-
-    function _msgData() internal view override(Context, ERC2771Context) returns (bytes calldata){
-        return ERC2771Context._msgData();
     }
 }
