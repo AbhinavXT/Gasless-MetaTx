@@ -137,14 +137,11 @@ const mint = () => {
   const switchNetwork = async () => {
     if (window.ethereum) {
       try {
-        // Try to switch to the Mumbai testnet
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: '0x2a' }], // Check networks.js for hexadecimal network ids
         })
       } catch (error) {
-        // This error code means that the chain we want has not been added to MetaMask
-        // In this case we ask the user to add it to their MetaMask
         if (error.code === 4902) {
           try {
             await window.ethereum.request({
