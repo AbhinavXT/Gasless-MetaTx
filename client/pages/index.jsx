@@ -6,10 +6,16 @@ import { networks } from '../utils/networks'
 
 import NFT from '../../artifacts/contracts/EternalNFT.sol/EternalNFT.json'
 
+// import @biconomy/mexa
+import { Biconomy } from '@biconomy/mexa'
+
 let walletProvider, walletSigner
 let contract, contractInterface
 
-const nftContractAddress = '0x18E30db48131CB098f7cc3aBAff546F37b463830'
+// decalre biconomy and ethersProvider variable
+let biconomy, ethersProvider
+
+const nftContractAddress = '0xfcBC9b16EeB1060E1925CCD51E697c62E0c8Aa14'
 
 const mint = () => {
   const [currentAccount, setCurrentAccount] = useState('')
@@ -24,6 +30,15 @@ const mint = () => {
     if (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask) {
       setInitLoading(0)
 
+      // Initialize biconomy with api key from the dashboard
+      biconomy = new Biconomy(window.ethereum, {
+        apiKey: '04MWn6wA-.45530b38-e2c8-4944-bbb9-0aa3d5dfbd7b',
+        debug: true,
+      })
+
+      // Initialize etersProvider with the biconomy object
+      ethersProvider = new ethers.providers.Web3Provider(biconomy)
+
       walletProvider = new ethers.providers.Web3Provider(window.ethereum)
       walletSigner = walletProvider.getSigner()
 
@@ -31,10 +46,22 @@ const mint = () => {
 
       setSelectedAddress(userAddress)
 
-      contract = new ethers.Contract(nftContractAddress, NFT.abi, walletSigner)
+      // Initialize dApp inside the biconomy events
+      biconomy
+        .onEvent(biconomy.READY, async () => {
+          contract = new ethers.Contract(
+            nftContractAddress,
+            NFT.abi,
+            biconomy.getSignerByAddress(userAddress)
+          )
 
-      contractInterface = new ethers.utils.Interface(NFT.abi)
-      setInitLoading(1)
+          contractInterface = new ethers.utils.Interface(NFT.abi)
+          setInitLoading(1)
+        })
+        .onEvent(biconomy.ERROR, (error, message) => {
+          console.log(message)
+          console.log(error)
+        })
     } else {
       console.log('Metamask not installed')
     }
@@ -141,15 +168,41 @@ const mint = () => {
       const { ethereum } = window
 
       if (ethereum) {
+        // Create your target method signature.. here we are calling setQuote() method of our contract
         let userAddress = selectedAddress
 
-        const txn = await contract.createEternalNFT()
-        const nftTxn = await txn.wait()
+        let { data } = await contract.populateTransaction.createEternalNFT()
 
-        console.log(nftTxn)
+        let provider = biconomy.getEthersProvider()
 
-        setNftTx(nftTxn.transactionHash)
-        setNftLoading(1)
+        let gasLimit = await provider.estimateGas({
+          to: nftContractAddress,
+          from: userAddress,
+          data: data,
+        })
+
+        let txParams = {
+          data: data,
+          to: nftContractAddress,
+          from: userAddress,
+          gasLimit: 10000000,
+          signatureType: 'EIP712_SIGN',
+        }
+        // add event emitter methods
+        let tx
+
+        try {
+          tx = await provider.send('eth_sendTransaction', [txParams])
+        } catch (err) {
+          console.log('handle errors like signature denied here')
+          console.log(err)
+        }
+
+        console.log('Transaction hash : ', tx)
+
+        provider.once(tx, (transaction) => {
+          console.log(transaction)
+        })
       } else {
         console.log("Ethereum object doesn't exist!")
       }
