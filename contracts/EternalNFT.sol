@@ -8,8 +8,6 @@ import { Base64 } from "./libraries/Base64.sol";
 
 import "hardhat/console.sol"; 
 
-// import "./EIP712MetaTransaction.sol";
-
 contract EternalNFT is ERC721URIStorage {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenId;
