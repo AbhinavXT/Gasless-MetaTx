@@ -17,7 +17,7 @@ let biconomy
 const mint = () => {
   const [currentAccount, setCurrentAccount] = useState('')
   const [selectedAddress, setSelectedAddress] = useState('')
-  const [mintedNFT, setMintedNFT] = useState(null)
+  const [nftTx, setNftTx] = useState(null)
   const [network, setNetwork] = useState('')
 
   const [nftLoading, setNftLoading] = useState(null)
@@ -163,7 +163,7 @@ const mint = () => {
   const mintMeta = async () => {
     try {
       setNftLoading(0)
-      setMintedNFT(null)
+      setNftTx(null)
       const { ethereum } = window
 
       if (ethereum) {
@@ -201,7 +201,7 @@ const mint = () => {
         console.log('Transaction hash : ', tx)
 
         provider.once(tx, (transaction) => {
-          console.log(transaction)
+          setNftTx(transaction.transactionHash)
         })
       } else {
         console.log("Ethereum object doesn't exist!")
@@ -261,16 +261,18 @@ const mint = () => {
       )}
 
       <div className="mt-10">
-        {mintedNFT ? (
+        {nftTx ? (
           <div className="flex flex-col items-center justify-center">
-            <div className="mb-4 text-center text-lg font-semibold">
-              Your Eternal Domain Character
+            <div className="text-lg font-bold">
+              You can view the transaction{' '}
+              <a
+                href={`https://kovan.etherscan.io/tx/${nftTx}`}
+                target="_blank"
+                className="text-[#6FFFE9] underline"
+              >
+                here
+              </a>
             </div>
-            <img
-              src={mintedNFT}
-              alt=""
-              className="h-60 w-60 rounded-lg shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
-            />
           </div>
         ) : nftLoading === 0 ? (
           <div className="text-lg font-bold">
