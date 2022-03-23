@@ -10,6 +10,10 @@ import NFT from '../utils/EternalNFT.json'
 
 import { Biconomy } from '@biconomy/mexa'
 
+import Web3Modal from 'web3modal'
+import Portis from '@portis/web3'
+import WalletConnectProvider from '@walletconnect/web3-provider'
+
 const domainType = [
   { name: 'name', type: 'string' },
   { name: 'version', type: 'string' },
@@ -30,9 +34,24 @@ let domainData = {
   salt: ethers.utils.hexZeroPad(ethers.BigNumber.from(42).toHexString(), 32),
 }
 
-let ethersProvider, walletProvider, walletSigner
+let ethersProvider, walletProvider, walletSigner, instance
 let contract, contractInterface
 let biconomy
+
+const providerOptions = {
+  portis: {
+    package: Portis, // required
+    options: {
+      id: 'bc402fd6-7386-4d74-a42e-e786f8c50e0c', // required
+    },
+  },
+  walletconnect: {
+    package: WalletConnectProvider, // required
+    options: {
+      infuraId: 'Su3Y4WDh89-ygiQHL77KNGsywJ3y2jlR', // required
+    },
+  },
+}
 
 const mint = () => {
   const [currentAccount, setCurrentAccount] = useState('')
@@ -46,7 +65,6 @@ const mint = () => {
   const init = async () => {
     if (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask) {
       setInitLoading(0)
-      //const provider = window['ethereum']
 
       biconomy = new Biconomy(window.ethereum, {
         apiKey: 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
@@ -55,7 +73,7 @@ const mint = () => {
 
       ethersProvider = new ethers.providers.Web3Provider(biconomy)
 
-      walletProvider = new ethers.providers.Web3Provider(window.ethereum)
+      walletProvider = new ethers.providers.Web3Provider(instance)
       walletSigner = walletProvider.getSigner()
 
       let userAddress = await walletSigner.getAddress()
@@ -124,9 +142,11 @@ const mint = () => {
         return
       }
 
-      const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
+      const web3Modal = new Web3Modal({
+        providerOptions, // required
+      })
 
-      console.log('Found account', accounts[0])
+      instance = await web3Modal.connect()
       setCurrentAccount(accounts[0])
       switchNetwork()
     } catch (error) {
