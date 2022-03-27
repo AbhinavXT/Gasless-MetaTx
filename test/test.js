@@ -110,8 +110,7 @@ describe("NFT Contract", async () => {
 			functionSignature,
 			r,
 			s,
-			v,
-			{ from: publicKey }
+			v
 		)
 
 		const txData = await tx.wait(1)
