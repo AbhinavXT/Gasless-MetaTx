@@ -1,17 +1,14 @@
 const { assert } = require("chai")
-const { ethers } = require("ethers")
-const sigUtil = require("@metamask/eth-sig-util")
+const sigUtil = require("eth-sig-util")
 
 require("dotenv").config()
 
-const EIP712MetaTransactionABI =
-	require("../artifacts/contracts/EIP712MetaTransaction.sol/EIP712MetaTransaction.json").abi
-const NFTabi =
-	require("../artifacts/contracts/EternalNFT.sol/EternalNFT.json").abi
+const EIP712MetaTransaction = require("../artifacts/contracts/EIP712MetaTransaction.sol/EIP712MetaTransaction.json")
+const NFT = require("../artifacts/contracts/EternalNFT.sol/EternalNFT.json")
 
-const nftContractAddress = "0x372d3e535fb9FCABF44df1fEBeb7d8749e189512"
-
-const wallet = new ethers.Wallet.createRandom()
+let wallet = new ethers.Wallet.createRandom()
+let publicKey = wallet.address
+let privateKey = wallet._signingKey().privateKey
 
 const domainType = [
 	{ name: "name", type: "string" },
@@ -28,16 +25,100 @@ const metaTransactionType = [
 
 let domainData
 
-const privateKey = wallet._signingKey().privateKey
-const publicKey = wallet.address
+const getTXData = async (nonce, functionSignature) => {
+	let message = {
+		nonce: parseInt(nonce),
+		from: publicKey,
+		functionSignature: functionSignature,
+	}
 
-const nftContract = new ethers.Contract(nftContractAddress, NFTabi, wallet)
-nftContract.connect(process.env.ALCHEMY_KOVAN_URL)
+	let dataToSign = {
+		types: {
+			EIP712Domain: domainType,
+			MetaTransaction: metaTransactionType,
+		},
+		domain: domainData,
+		primaryType: "MetaTransaction",
+		message: message,
+	}
 
-const contractInterface = new ethers.utils.Interface(NFTabi)
+	let signature = sigUtil.signTypedData(
+		new Buffer.from(privateKey.substring(2, 66), "hex"),
+		{ data: dataToSign },
+		"V3"
+	)
 
-const privateKeyTransaction = async () => {
-	const nonce = await nftContract.getNonce(publicKey)
+	let r = signature.slice(0, 66)
+	let s = "0x".concat(signature.slice(66, 130))
+	let v = "0x".concat(signature.slice(130, 132))
+	v = ethers.BigNumber.from(v).toNumber()
+	if (![27, 28].includes(v)) v += 27
+
+	return {
+		r,
+		s,
+		v,
+	}
 }
 
-privateKeyTransaction()
+describe("NFT Contract", async () => {
+	let nftContractFactory,
+		nftContract,
+		metaTransactionContractFactory,
+		metaTransactionContract,
+		nftContractInterface
+
+	before("before test", async () => {
+		nftContractFactory = await ethers.getContractFactory("EternalNFT")
+		nftContract = await nftContractFactory.deploy()
+		await nftContract.deployed()
+
+		nftContractInterface = new ethers.utils.Interface(NFT.abi)
+
+		metaTransactionContractFactory = await ethers.getContractFactory(
+			"EIP712MetaTransaction"
+		)
+		metaTransactionContract = await metaTransactionContractFactory.deploy(
+			"EternalNFT",
+			"1"
+		)
+		await metaTransactionContract.deployed()
+
+		const [owner, _] = await ethers.getSigners()
+		console.log("owner: ", owner.address)
+
+		domainData = {
+			name: "EthernalNFT",
+			version: "1",
+			verifyingContract: nftContract.address,
+			chainId: 1337,
+		}
+	})
+
+	it("Should be able to send transaction successfully", async () => {
+		let nonce = await nftContract.getNonce(publicKey)
+
+		let functionSignature =
+			nftContractInterface.encodeFunctionData("createEternalNFT")
+
+		const { r, s, v } = await getTXData(nonce, functionSignature)
+
+		console.log(r, s, v)
+
+		let tx = await nftContract.executeMetaTransaction(
+			publicKey,
+			functionSignature,
+			r,
+			s,
+			v,
+			{ from: publicKey }
+		)
+
+		const txData = await tx.wait(1)
+		const tokenId = txData.events[0].args.tokenId.toString()
+		console.log(tokenId)
+
+		console.log("Transaction hash : ", tx.hash)
+		console.log(tx)
+	})
+})
