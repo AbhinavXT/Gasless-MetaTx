@@ -13,6 +13,9 @@ module.exports = {
 		// 	accounts:
 		// 		process.env.ACCOUNT_KEY !== undefined ? [process.env.ACCOUNT_KEY] : [],
 		// },
+		hardhat: {
+			chainId: 1337,
+		},
 		kovan: {
 			url: kovanUrl,
 			accounts:
