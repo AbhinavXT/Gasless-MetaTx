@@ -1,5 +1,8 @@
 {
 	"name": "hardhat-project",
+	"scripts": {
+		"deploy": "hardhat run scripts/deploy.js"
+	},
 	"devDependencies": {
 		"@nomiclabs/hardhat-ethers": "^2.0.3",
 		"@nomiclabs/hardhat-waffle": "^2.0.1",
