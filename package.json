@@ -1,7 +1,7 @@
 {
 	"name": "hardhat-project",
 	"scripts": {
-		"deploy": "hardhat run scripts/deploy.js"
+		"deploy": "hardhat run scripts/deploy.js --network kovan"
 	},
 	"devDependencies": {
 		"@nomiclabs/hardhat-ethers": "^2.0.3",
