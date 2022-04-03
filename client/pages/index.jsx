@@ -114,8 +114,6 @@ const mint = () => {
     }
   }
 
-  const getValues = () => {}
-
   // Calls Metamask to connect wallet on clicking Connect Wallet button
   const connectWallet = async () => {
     try {
@@ -249,14 +247,6 @@ const mint = () => {
       console.log(error)
     }
   }
-
-  useEffect(() => {
-    //checkIfWalletIsConnected()
-    // if (currentAccount !== '' && network === 'Kovan') {
-    //   console.log('init')
-    //   init()
-    // }
-  }, [currentAccount, network])
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-gray-200 pt-32 text-gray-900">
