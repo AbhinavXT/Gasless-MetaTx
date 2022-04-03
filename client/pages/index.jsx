@@ -297,7 +297,7 @@ const mint = () => {
   }, [currentAccount, network])
 
   return (
-    <div className="flex min-h-screen flex-col items-center bg-[#0B132B] pt-32 text-[#d3d3d3]">
+    <div className="flex min-h-screen flex-col items-center bg-gray-200 pt-32 text-gray-900">
       <Head>
         <title>Gasless NFT</title>
         <meta name="viewport" content="initial-scale=1.0, width=device-width" />
@@ -316,20 +316,20 @@ const mint = () => {
       <h2 className="mt-12 text-3xl font-bold">Mint your Character!</h2>
       {currentAccount === '' ? (
         <button
-          className="mb-10 mt-20 rounded-lg bg-black py-3 px-12 text-2xl font-bold shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
+          className="mb-10 mt-20 rounded-lg bg-black py-3 px-12 text-2xl font-bold text-gray-300 shadow-lg transition duration-500 ease-in-out hover:scale-105"
           onClick={connectWallet}
         >
           Connect Wallet
         </button>
       ) : initLoading === 0 ? (
         <div>
-          <button className="mb-10 mt-20 rounded-lg bg-black py-3 px-12 text-2xl font-bold shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105">
+          <button className="mb-10 mt-20 rounded-lg bg-black py-3 px-12 text-2xl font-bold text-gray-300 shadow-lg transition duration-500 ease-in-out hover:scale-105">
             Initalizing....
           </button>
         </div>
       ) : (
         <button
-          className="mb-10 mt-20 rounded-lg bg-black py-3 px-12 text-2xl font-bold shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
+          className="mb-10 mt-20 rounded-lg bg-black py-3 px-12 text-2xl font-bold text-gray-300 shadow-lg transition duration-500 ease-in-out hover:scale-105"
           onClick={mintMeta}
         >
           Mint NFT
@@ -345,7 +345,7 @@ const mint = () => {
             <img
               src={mintedNFT}
               alt=""
-              className="h-60 w-60 rounded-lg shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
+              className="h-60 w-60 rounded-lg shadow-lg transition duration-500 ease-in-out hover:scale-105"
             />
           </div>
         ) : nftLoading === 0 ? (
