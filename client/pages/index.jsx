@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { nftContractAddress } from '../config.js'
 import { ethers } from 'ethers'
 import axios from 'axios'
-import { networks } from '../utils/networks'
+//import { networks } from '../utils/networks'
 
 import NFT from '../utils/EternalNFT.json'
 
@@ -13,6 +13,7 @@ import { Biconomy } from '@biconomy/mexa'
 import Web3Modal from 'web3modal'
 import Portis from '@portis/web3'
 import WalletConnectProvider from '@walletconnect/web3-provider'
+import Fortmatic from 'fortmatic'
 
 const domainType = [
   { name: 'name', type: 'string' },
@@ -38,6 +39,11 @@ let ethersProvider, walletProvider, walletSigner, instance
 let contract, contractInterface
 let biconomy
 
+const customNetworkOptions = {
+  rpcUrl: 'https://kovan.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
+  chainId: 6,
+}
+
 const providerOptions = {
   portis: {
     package: Portis, // required
@@ -51,6 +57,13 @@ const providerOptions = {
       infuraId: 'Su3Y4WDh89-ygiQHL77KNGsywJ3y2jlR', // required
     },
   },
+  fortmatic: {
+    package: Fortmatic, // required
+    options: {
+      key: 'pk_test_8DFCB3A9CCC5F213', // required,
+      network: customNetworkOptions, // if we don't pass it, it will default to localhost:8454
+    },
+  },
 }
 
 const mint = () => {
@@ -62,8 +75,8 @@ const mint = () => {
   const [nftLoading, setNftLoading] = useState(null)
   const [initLoading, setInitLoading] = useState(null)
 
-  const init = async () => {
-    if (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask) {
+  const init = async (instance) => {
+    if (typeof window.ethereum !== 'undefined') {
       setInitLoading(0)
 
       biconomy = new Biconomy(window.ethereum, {
@@ -73,13 +86,9 @@ const mint = () => {
 
       ethersProvider = new ethers.providers.Web3Provider(biconomy)
 
-      const web3Modal = new Web3Modal({
-        providerOptions, // required
-      })
-
-      instance = await web3Modal.connect()
-
       walletProvider = new ethers.providers.Web3Provider(instance)
+      console.log(walletProvider)
+
       walletSigner = walletProvider.getSigner()
 
       let userAddress = await walletSigner.getAddress()
@@ -105,101 +114,28 @@ const mint = () => {
     }
   }
 
-  // Checks if wallet is connected to the correct network
-  const checkIfWalletIsConnected = async () => {
-    const { ethereum } = window
-
-    if (!ethereum) {
-      console.log('Make sure you have metamask!')
-      return
-    } else {
-      console.log('We have the ethereum object', ethereum)
-    }
-
-    const accounts = await ethereum.request({ method: 'eth_accounts' })
-
-    if (accounts.length !== 0) {
-      const account = accounts[0]
-      console.log('Found an authorized account:', account)
-      setCurrentAccount(account)
-    } else {
-      console.log('No authorized account found')
-    }
-
-    // This is the new part, we check the user's network chain ID
-    const chainId = await ethereum.request({ method: 'eth_chainId' })
-    setNetwork(networks[chainId])
-
-    ethereum.on('chainChanged', handleChainChanged)
-
-    // Reload the page when they change networks
-    function handleChainChanged(_chainId) {
-      window.location.reload()
-    }
-  }
+  const getValues = () => {}
 
   // Calls Metamask to connect wallet on clicking Connect Wallet button
   const connectWallet = async () => {
     try {
-      const { ethereum } = window
-
-      if (!ethereum) {
-        console.log('Metamask not detected')
-        return
-      }
+      console.log('connect')
 
       const web3Modal = new Web3Modal({
+        network: 'kovan', // optional
+        cacheProvider: false, // optional
         providerOptions, // required
+        disableInjectedProvider: false, // optional
       })
 
       instance = await web3Modal.connect()
+
       console.log(instance.selectedAddress)
       setCurrentAccount(instance.selectedAddress)
-      switchNetwork()
+      init(instance)
+      //switchNetwork()
     } catch (error) {
       console.log('Error connecting to metamask', error)
-    }
-  }
-
-  const switchNetwork = async () => {
-    if (window.ethereum) {
-      try {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x2a' }], // Check networks.js for hexadecimal network ids
-        })
-      } catch (error) {
-        if (error.code === 4902) {
-          try {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [
-                {
-                  chainId: '0x2a',
-                  chainName: 'Kovan',
-                  rpcUrls: [
-                    'https://kovan.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
-                  ],
-                  nativeCurrency: {
-                    name: 'Ethereum',
-                    symbol: 'ETH',
-                    decimals: 18,
-                  },
-                  blockExplorerUrls: ['https://kovan.etherscan.io/'],
-                },
-              ],
-            })
-          } catch (error) {
-            console.log(error)
-          }
-        }
-        console.log(error)
-      }
-    } else {
-      // If window.ethereum is not found then MetaMask is not installed
-      alert(
-        'MetaMask is not installed. Please install it to use this app: https://metamask.io/download.html'
-      )
     }
   }
 
@@ -315,16 +251,15 @@ const mint = () => {
   }
 
   useEffect(() => {
-    checkIfWalletIsConnected()
-
-    if (currentAccount !== '' && network === 'Kovan') {
-      console.log('init')
-      init()
-    }
+    //checkIfWalletIsConnected()
+    // if (currentAccount !== '' && network === 'Kovan') {
+    //   console.log('init')
+    //   init()
+    // }
   }, [currentAccount, network])
 
   return (
-    <div className="flex min-h-screen flex-col items-center bg-[#0B132B] pt-32 text-[#d3d3d3]">
+    <div className="flex min-h-screen flex-col items-center bg-gray-200 pt-32 text-gray-900">
       <Head>
         <title>Gasless NFT</title>
         <meta name="viewport" content="initial-scale=1.0, width=device-width" />
@@ -343,20 +278,20 @@ const mint = () => {
       <h2 className="mt-12 text-3xl font-bold">Mint your Character!</h2>
       {currentAccount === '' ? (
         <button
-          className="mb-10 mt-20 rounded-lg bg-black py-3 px-12 text-2xl font-bold shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
+          className="mb-10 mt-20 rounded-lg bg-gray-900 py-3 px-12 text-2xl font-bold text-gray-300 shadow-lg transition duration-500 ease-in-out hover:scale-105"
           onClick={connectWallet}
         >
           Connect Wallet
         </button>
       ) : initLoading === 0 ? (
         <div>
-          <button className="mb-10 mt-20 rounded-lg bg-black py-3 px-12 text-2xl font-bold shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105">
+          <button className="mb-10 mt-20 rounded-lg bg-gray-900 py-3 px-12 text-2xl font-bold text-gray-300 shadow-lg transition duration-500 ease-in-out hover:scale-105">
             Initalizing....
           </button>
         </div>
       ) : (
         <button
-          className="mb-10 mt-20 rounded-lg bg-black py-3 px-12 text-2xl font-bold shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
+          className="mb-10 mt-20 rounded-lg bg-gray-900 py-3 px-12 text-2xl font-bold text-gray-300 shadow-lg transition duration-500 ease-in-out hover:scale-105"
           onClick={mintMeta}
         >
           Mint NFT
@@ -372,7 +307,7 @@ const mint = () => {
             <img
               src={mintedNFT}
               alt=""
-              className="h-60 w-60 rounded-lg shadow-lg shadow-[#6FFFE9] transition duration-500 ease-in-out hover:scale-105"
+              className="h-60 w-60 rounded-lg shadow-lg transition duration-500 ease-in-out hover:scale-105"
             />
           </div>
         ) : nftLoading === 0 ? (
