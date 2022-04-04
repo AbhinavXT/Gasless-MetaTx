@@ -89,6 +89,9 @@ const mint = () => {
       walletProvider = new ethers.providers.Web3Provider(instance)
       console.log(walletProvider)
 
+      const { chainId } = await walletProvider.getNetwork()
+      setNetwork(chainId)
+
       walletSigner = walletProvider.getSigner()
 
       let userAddress = await walletSigner.getAddress()
@@ -128,14 +131,17 @@ const mint = () => {
 
       instance = await web3Modal.connect()
 
-      console.log(instance.selectedAddress)
       setCurrentAccount(instance.selectedAddress)
+      console.log(instance.selectedAddress)
       init(instance)
-      //switchNetwork()
     } catch (error) {
       console.log('Error connecting to metamask', error)
     }
   }
+
+  // const chackValues = () => {
+
+  // }
 
   const mintMeta = async () => {
     try {
