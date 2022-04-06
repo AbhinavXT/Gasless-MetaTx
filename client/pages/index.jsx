@@ -12,10 +12,10 @@ import { Biconomy } from '@biconomy/mexa'
 let walletProvider, walletSigner
 let contract, contractInterface
 
-// decalre biconomy and ethersProvider variable
-let biconomy, ethersProvider
+// decalring biconomy variable
+let biconomy
 
-const nftContractAddress = '0xfcBC9b16EeB1060E1925CCD51E697c62E0c8Aa14'
+const nftContractAddress = '0x6E9AF4e1Ae34F62594D68CdB74953b4AC781EF99'
 
 const mint = () => {
   const [currentAccount, setCurrentAccount] = useState('')
@@ -35,9 +35,6 @@ const mint = () => {
         apiKey: '04MWn6wA-.45530b38-e2c8-4944-bbb9-0aa3d5dfbd7b',
         debug: true,
       })
-
-      // Initialize etersProvider with the biconomy object
-      ethersProvider = new ethers.providers.Web3Provider(biconomy)
 
       walletProvider = new ethers.providers.Web3Provider(window.ethereum)
       walletSigner = walletProvider.getSigner()
