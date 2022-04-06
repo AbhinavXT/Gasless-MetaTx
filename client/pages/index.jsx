@@ -10,6 +10,7 @@ import NFT from '../utils/EternalNFT.json'
 
 import { Biconomy } from '@biconomy/mexa'
 
+// Initialize Constants
 const domainType = [
   { name: 'name', type: 'string' },
   { name: 'version', type: 'string' },
@@ -23,6 +24,7 @@ const metaTransactionType = [
   { name: 'functionSignature', type: 'bytes' },
 ]
 
+// replace the chainId 42 if network is not kovan
 let domainData = {
   name: 'EternalNFT',
   version: '1',
@@ -55,6 +57,10 @@ const mint = () => {
 
       ethersProvider = new ethers.providers.Web3Provider(biconomy)
 
+      /*
+        This provider linked to your wallet.
+        If needed, substitute your wallet solution in place of window.ethereum 
+      */
       walletProvider = new ethers.providers.Web3Provider(window.ethereum)
       walletSigner = walletProvider.getSigner()
 
@@ -63,12 +69,14 @@ const mint = () => {
 
       biconomy
         .onEvent(biconomy.READY, async () => {
+          // Initialize your dapp here like getting user accounts etc
           contract = new ethers.Contract(
             nftContractAddress,
             NFT.abi,
             biconomy.getSignerByAddress(userAddress)
           )
 
+          // Handle error while initializing mexa
           contractInterface = new ethers.utils.Interface(NFT.abi)
           setInitLoading(1)
         })
@@ -134,6 +142,7 @@ const mint = () => {
     }
   }
 
+  // Opens up a Switch Network metamask window if the user is at any network other than Kovan on connecting wallet
   const switchNetwork = async () => {
     if (window.ethereum) {
       try {
@@ -176,6 +185,7 @@ const mint = () => {
     }
   }
 
+  // Executes a Meta Transaction with EIP-712 Type signature for minting an NFT
   const mintMeta = async () => {
     try {
       setNftLoading(0)
@@ -195,6 +205,10 @@ const mint = () => {
         message.from = userAddress
         message.functionSignature = functionSignature
 
+        /*
+          Its important to use eth_signTypedData_v3 and not v4 to get EIP712 signature 
+          because we have used salt in domain data instead of chainId
+        */
         const dataToSign = JSON.stringify({
           types: {
             EIP712Domain: domainType,
@@ -205,6 +219,7 @@ const mint = () => {
           message: message,
         })
 
+        // Get the EIP-712 Signature and send the transaction
         let signature = await walletProvider.send('eth_signTypedData_v3', [
           userAddress,
           dataToSign,
@@ -221,6 +236,7 @@ const mint = () => {
     }
   }
 
+  // Function for decoding Signature Parameters
   const getSignatureParameters = (signature) => {
     if (!ethers.utils.isHexString(signature)) {
       throw new Error(
