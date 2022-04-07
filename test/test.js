@@ -85,13 +85,15 @@ describe("NFT Contract", async () => {
 		await metaTransactionContract.deployed()
 
 		const [owner, _] = await ethers.getSigners()
-		console.log("owner: ", owner.address)
 
 		domainData = {
-			name: "EthernalNFT",
+			name: "EternalNFT",
 			version: "1",
 			verifyingContract: nftContract.address,
-			chainId: 1337,
+			salt: ethers.utils.hexZeroPad(
+				ethers.BigNumber.from(1337).toHexString(),
+				32
+			),
 		}
 	})
 
@@ -103,8 +105,6 @@ describe("NFT Contract", async () => {
 
 		const { r, s, v } = await getTXData(nonce, functionSignature)
 
-		console.log(r, s, v)
-
 		let tx = await nftContract.executeMetaTransaction(
 			publicKey,
 			functionSignature,
@@ -115,9 +115,11 @@ describe("NFT Contract", async () => {
 
 		const txData = await tx.wait(1)
 		const tokenId = txData.events[0].args.tokenId.toString()
-		console.log(tokenId)
 
 		console.log("Transaction hash : ", tx.hash)
-		console.log(tx)
+
+		let newNonce = await nftContract.getNonce(publicKey)
+
+		assert.isTrue(newNonce.toNumber() == nonce + 1, "Nonce not incremented")
 	})
 })
