@@ -1,14 +1,15 @@
 import Head from 'next/head'
 
 import { useState, useEffect } from 'react'
-import { nftContractAddress } from '../config.js'
 import { ethers } from 'ethers'
 import axios from 'axios'
 import { networks } from '../utils/networks'
 
-import NFT from '../utils/EternalNFT.json'
+import NFT from '../../artifacts/contracts/EternalNFT.sol/EternalNFT.json'
 
 import { Biconomy } from '@biconomy/mexa'
+
+const nftContractAddress = '0x954961aAa708423828db1047c320521d25EC31cC'
 
 // Initialize Constants
 const domainType = [
@@ -41,6 +42,7 @@ const mint = () => {
   const [selectedAddress, setSelectedAddress] = useState('')
   const [mintedNFT, setMintedNFT] = useState(null)
   const [network, setNetwork] = useState('')
+  const [gasless, setGasless] = useState(0)
 
   const [nftLoading, setNftLoading] = useState(null)
   const [initLoading, setInitLoading] = useState(null)
@@ -193,41 +195,52 @@ const mint = () => {
       const { ethereum } = window
 
       if (ethereum) {
-        let userAddress = selectedAddress
+        if (gasless === 1) {
+          console.log(gasless)
+          let userAddress = selectedAddress
 
-        let nonce = await contract.getNonce(userAddress)
+          let nonce = await contract.getNonce(userAddress)
 
-        let functionSignature =
-          contractInterface.encodeFunctionData('createEternalNFT')
+          let functionSignature =
+            contractInterface.encodeFunctionData('createEternalNFT')
 
-        let message = {}
-        message.nonce = parseInt(nonce)
-        message.from = userAddress
-        message.functionSignature = functionSignature
+          let message = {}
+          message.nonce = parseInt(nonce)
+          message.from = userAddress
+          message.functionSignature = functionSignature
 
-        /*
+          /*
           Its important to use eth_signTypedData_v3 and not v4 to get EIP712 signature 
           because we have used salt in domain data instead of chainId
         */
-        const dataToSign = JSON.stringify({
-          types: {
-            EIP712Domain: domainType,
-            MetaTransaction: metaTransactionType,
-          },
-          domain: domainData,
-          primaryType: 'MetaTransaction',
-          message: message,
-        })
+          const dataToSign = JSON.stringify({
+            types: {
+              EIP712Domain: domainType,
+              MetaTransaction: metaTransactionType,
+            },
+            domain: domainData,
+            primaryType: 'MetaTransaction',
+            message: message,
+          })
 
-        // Get the EIP-712 Signature and send the transaction
-        let signature = await walletProvider.send('eth_signTypedData_v3', [
-          userAddress,
-          dataToSign,
-        ])
+          // Get the EIP-712 Signature and send the transaction
+          let signature = await walletProvider.send('eth_signTypedData_v3', [
+            userAddress,
+            dataToSign,
+          ])
 
-        let { r, s, v } = getSignatureParameters(signature)
+          let { r, s, v } = getSignatureParameters(signature)
 
-        sendSignedTransaction(userAddress, functionSignature, r, s, v)
+          sendSignedTransaction(userAddress, functionSignature, r, s, v)
+        } else {
+          console.log(gasless)
+          const tx = await contract.createEternalNFT()
+          const txn = await tx.wait()
+
+          const tokenId = txn.events[0].args.tokenId.toString()
+          console.log(tokenId)
+          getMintedNFT(tokenId)
+        }
       } else {
         console.log("Ethereum object doesn't exist!")
       }
@@ -303,6 +316,11 @@ const mint = () => {
     }
   }
 
+  const toggleGasless = () => {
+    gasless === 0 ? setGasless(1) : setGasless(0)
+    console.log(gasless)
+  }
+
   useEffect(() => {
     checkIfWalletIsConnected()
 
@@ -344,12 +362,22 @@ const mint = () => {
           </button>
         </div>
       ) : (
-        <button
-          className="mb-10 mt-20 rounded-lg bg-black py-3 px-12 text-2xl font-bold text-gray-300 shadow-lg transition duration-500 ease-in-out hover:scale-105"
-          onClick={mintMeta}
-        >
-          Mint NFT
-        </button>
+        <div className="mt-8 flex flex-col items-center justify-center">
+          <div className="flex items-center justify-center gap-x-4">
+            <input
+              type="checkbox"
+              className="h-4 w-4 shadow-sm shadow-gray-800"
+              onChange={toggleGasless}
+            />
+            <label className="text-xl font-bold">Turn On Gasless</label>
+          </div>
+          <button
+            className="mb-10 mt-12 rounded-lg bg-black py-3 px-12 text-2xl font-bold text-gray-300 shadow-lg transition duration-500 ease-in-out hover:scale-105"
+            onClick={mintMeta}
+          >
+            Mint NFT
+          </button>
+        </div>
       )}
 
       <div className="mt-10">
