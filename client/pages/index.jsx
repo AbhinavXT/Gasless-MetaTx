@@ -5,7 +5,7 @@ import { ethers } from 'ethers'
 import axios from 'axios'
 import { networks } from '../utils/networks'
 
-import NFT from '../../artifacts/contracts/EternalNFT.sol/EternalNFT.json'
+import NFT from '../utils/EternalNFT.json'
 
 import { Biconomy } from '@biconomy/mexa'
 
@@ -210,9 +210,9 @@ const mint = () => {
           message.functionSignature = functionSignature
 
           /*
-          Its important to use eth_signTypedData_v3 and not v4 to get EIP712 signature 
-          because we have used salt in domain data instead of chainId
-        */
+            Its important to use eth_signTypedData_v3 and not v4 to get EIP712 signature 
+            because we have used salt in domain data instead of chainId
+          */
           const dataToSign = JSON.stringify({
             types: {
               EIP712Domain: domainType,
