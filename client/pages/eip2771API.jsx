@@ -2,83 +2,64 @@ import Head from 'next/head'
 
 import { useState, useEffect } from 'react'
 import { ethers } from 'ethers'
-import axios from 'axios'
 import { networks } from '../utils/networks'
 
-import NFT from '../utils/EternalNFT.json'
+import NFT from '../utils/EternalNFT2771.json'
 
 import { Biconomy } from '@biconomy/mexa'
 
-const nftContractAddress = '0x954961aAa708423828db1047c320521d25EC31cC'
+const nftContractAddress = '0xf9fB1C88Fb9f89E1BAbb1d3C8Ed50b35785FcE31'
 
-// Initialize Constants
-const domainType = [
-  { name: 'name', type: 'string' },
-  { name: 'version', type: 'string' },
-  { name: 'verifyingContract', type: 'address' },
-  { name: 'salt', type: 'bytes32' },
-]
-
-const metaTransactionType = [
-  { name: 'nonce', type: 'uint256' },
-  { name: 'from', type: 'address' },
-  { name: 'functionSignature', type: 'bytes' },
-]
-
-// replace the chainId 42 if network is not kovan
-let domainData = {
-  name: 'EternalNFT',
-  version: '1',
-  verifyingContract: nftContractAddress,
-  salt: ethers.utils.hexZeroPad(ethers.BigNumber.from(42).toHexString(), 32),
-}
+import {
+  helperAttributes,
+  getDomainSeperator,
+  getDataToSignForPersonalSign,
+  getDataToSignForEIP712,
+  buildForwardTxRequest,
+  getBiconomyForwarderConfig,
+} from '../api-helper/forwarderHelper'
 
 let ethersProvider, walletProvider, walletSigner
 let contract, contractInterface
 let biconomy
 
-const mint = () => {
+const eip2771 = () => {
   const [currentAccount, setCurrentAccount] = useState('')
   const [selectedAddress, setSelectedAddress] = useState('')
-  const [mintedNFT, setMintedNFT] = useState(null)
+  const [nftTx, setNftTx] = useState(null)
   const [network, setNetwork] = useState('')
-  const [gasless, setGasless] = useState(0)
 
   const [nftLoading, setNftLoading] = useState(null)
   const [initLoading, setInitLoading] = useState(null)
+  const [gasless, setGasless] = useState(0)
 
   const init = async () => {
     if (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask) {
       setInitLoading(0)
-      //const provider = window['ethereum']
 
       biconomy = new Biconomy(window.ethereum, {
         apiKey: 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
         debug: true,
       })
 
+      // two providers one with biconomy andd other for the wallet signing the transaction
       ethersProvider = new ethers.providers.Web3Provider(biconomy)
 
-      /*
-        This provider linked to your wallet.
-        If needed, substitute your wallet solution in place of window.ethereum 
-      */
       walletProvider = new ethers.providers.Web3Provider(window.ethereum)
       walletSigner = walletProvider.getSigner()
 
       let userAddress = await walletSigner.getAddress()
       setSelectedAddress(userAddress)
 
+      // init dApp stuff like contracts and interface
       biconomy
         .onEvent(biconomy.READY, async () => {
-          // Initialize your dapp here like getting user accounts etc
           contract = new ethers.Contract(
             nftContractAddress,
             NFT.abi,
             biconomy.getSignerByAddress(userAddress)
           )
 
-          // Handle error while initializing mexa
           contractInterface = new ethers.utils.Interface(NFT.abi)
           setInitLoading(1)
         })
@@ -144,15 +125,17 @@ const mint = () => {
     }
   }
 
-  // Opens up a Switch Network metamask window if the user is at any network other than Kovan on connecting wallet
   const switchNetwork = async () => {
     if (window.ethereum) {
       try {
+        // Try to switch to the Mumbai testnet
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: '0x2a' }], // Check networks.js for hexadecimal network ids
         })
       } catch (error) {
+        // This error code means that the chain we want has not been added to MetaMask
+        // In this case we ask the user to add it to their MetaMask
         if (error.code === 4902) {
           try {
             await window.ethereum.request({
@@ -187,59 +170,73 @@ const mint = () => {
     }
   }
 
-  // Executes a Meta Transaction with EIP-712 Type signature for minting an NFT
   const mintMeta = async () => {
     try {
       setNftLoading(0)
-      setMintedNFT(null)
+      setNftTx(null)
       const { ethereum } = window
 
       if (ethereum) {
         if (gasless === 1) {
-          console.log(gasless)
           let userAddress = selectedAddress
 
-          let nonce = await contract.getNonce(userAddress)
+          let { data } = await contract.populateTransaction.createEternalNFT()
 
-          let functionSignature =
-            contractInterface.encodeFunctionData('createEternalNFT')
+          let provider = biconomy.getEthersProvider()
 
-          let message = {}
-          message.nonce = parseInt(nonce)
-          message.from = userAddress
-          message.functionSignature = functionSignature
-
-          /*
-          Its important to use eth_signTypedData_v3 and not v4 to get EIP712 signature 
-          because we have used salt in domain data instead of chainId
-        */
-          const dataToSign = JSON.stringify({
-            types: {
-              EIP712Domain: domainType,
-              MetaTransaction: metaTransactionType,
-            },
-            domain: domainData,
-            primaryType: 'MetaTransaction',
-            message: message,
+          let gasLimit = await provider.estimateGas({
+            to: nftContractAddress,
+            from: userAddress,
+            data: data,
           })
 
-          // Get the EIP-712 Signature and send the transaction
-          let signature = await walletProvider.send('eth_signTypedData_v3', [
-            userAddress,
-            dataToSign,
-          ])
+          let forwarder = await getBiconomyForwarderConfig(42)
+          let forwarderContract = new ethers.Contract(
+            forwarder.address,
+            forwarder.abi,
+            biconomy.getSignerByAddress(userAddress)
+          )
 
-          let { r, s, v } = getSignatureParameters(signature)
+          const batchNonce = await forwarderContract.getNonce(userAddress, 0)
+          //const batchId = await forwarderContract.getBatch(userAddress);
 
-          sendSignedTransaction(userAddress, functionSignature, r, s, v)
+          console.log(batchNonce)
+          const to = nftContractAddress
+          const gasLimitNum = Number(gasLimit.toNumber().toString())
+          console.log(gasLimitNum)
+          const batchId = 0
+          const req = await buildForwardTxRequest({
+            account: userAddress,
+            to,
+            gasLimitNum,
+            batchId,
+            batchNonce,
+            data,
+          })
+          console.log(req)
+
+          const domainSeparator = await getDomainSeperator(42)
+          console.log(domainSeparator)
+
+          const dataToSign = await getDataToSignForEIP712(req, 42)
+          walletProvider
+            .send('eth_signTypedData_v3', [userAddress, dataToSign])
+            .then((sig) => {
+              sendTransaction({
+                userAddress,
+                request: req,
+                domainSeparator,
+                sig,
+                signatureType: 'EIP712_SIGN',
+              })
+            })
+            .catch((error) => {
+              console.log(error)
+            })
         } else {
           console.log(gasless)
           const tx = await contract.createEternalNFT()
           const txn = await tx.wait()
-
-          const tokenId = txn.events[0].args.tokenId.toString()
-          console.log(tokenId)
-          getMintedNFT(tokenId)
         }
       } else {
         console.log("Ethereum object doesn't exist!")
@@ -249,70 +246,53 @@ const mint = () => {
     }
   }
 
-  // Function for decoding Signature Parameters
-  const getSignatureParameters = (signature) => {
-    if (!ethers.utils.isHexString(signature)) {
-      throw new Error(
-        'Given value "'.concat(signature, '" is not a valid hex string.')
-      )
-    }
-    var r = signature.slice(0, 66)
-    var s = '0x'.concat(signature.slice(66, 130))
-    var v = '0x'.concat(signature.slice(130, 132))
-    v = ethers.BigNumber.from(v).toNumber()
-    if (![27, 28].includes(v)) v += 27
-
-    console.log('Signature', signature)
-    console.log('r', r)
-    console.log('s', s)
-    console.log('v', v)
-
-    return {
-      r: r,
-      s: s,
-      v: v,
-    }
-  }
-
-  const sendSignedTransaction = async (userAddress, functionData, r, s, v) => {
-    try {
-      let tx = await contract.executeMetaTransaction(
-        userAddress,
-        functionData,
-        r,
-        s,
-        v,
-        { gasLimit: 1000000 }
-      )
-
-      const txData = await tx.wait(1)
-      const tokenId = txData.events[0].args.tokenId.toString()
-      console.log(tokenId)
-      getMintedNFT(tokenId)
-      console.log('Transaction hash : ', tx.hash)
-      console.log(tx)
-    } catch (error) {
-      console.log(error)
-    }
-  }
-
-  // Gets the minted NFT data
-  const getMintedNFT = async (tokenId) => {
-    try {
-      const { ethereum } = window
-
-      if (ethereum) {
-        let tokenUri = await contract.tokenURI(tokenId)
-        let data = await axios.get(tokenUri)
-        let meta = data.data
-
-        setNftLoading(1)
-        setMintedNFT(meta.image)
+  const sendTransaction = async ({
+    userAddress,
+    request,
+    sig,
+    domainSeparator,
+    signatureType,
+  }) => {
+    if (ethersProvider && contract) {
+      let params
+      if (domainSeparator) {
+        params = [request, domainSeparator, sig]
       } else {
-        console.log("Ethereum object doesn't exist!")
+        params = [request, sig]
       }
-    } catch (error) {
-      console.log(error)
+      try {
+        fetch(`https://api.biconomy.io/api/v2/meta-tx/native`, {
+          method: 'POST',
+          headers: {
+            'x-api-key': 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
+            'Content-Type': 'application/json;charset=utf-8',
+          },
+          body: JSON.stringify({
+            to: nftContractAddress,
+            apiId: '9283930d-a360-462e-ad8e-6fe4f3b4c463',
+            params: params,
+            from: userAddress,
+            signatureType: signatureType,
+          }),
+        })
+          .then((response) => response.json())
+          .then(function (result) {
+            console.log(result)
+
+            return result.txHash
+          })
+          .then(function (hash) {
+            ethersProvider.once(hash, (transaction) => {
+              console.log(transaction)
+              setNftTx(hash)
+            })
+          })
+          .catch(function (error) {
+            console.log(error)
+          })
+      } catch (error) {
+        console.log(error)
+      }
     }
   }
 
@@ -324,9 +304,12 @@ const mint = () => {
   useEffect(() => {
     checkIfWalletIsConnected()
 
-    if (currentAccount !== '' && network === 'Kovan') {
-      console.log('init')
-      init()
+    if (currentAccount !== '') {
+      if (network === 'Kovan') {
+        init()
+      } else {
+        switchNetwork()
+      }
     }
   }, [currentAccount, network])
 
@@ -381,16 +364,18 @@ const mint = () => {
       )}
 
       <div className="mt-10">
-        {mintedNFT ? (
+        {nftTx ? (
           <div className="flex flex-col items-center justify-center">
-            <div className="mb-4 text-center text-lg font-semibold">
-              Your Eternal Domain Character
+            <div className="text-lg font-bold">
+              You can view the transaction{' '}
+              <a
+                href={`https://kovan.etherscan.io/tx/${nftTx}`}
+                target="_blank"
+                className="text-blue-500 underline"
+              >
+                here
+              </a>
             </div>
-            <img
-              src={mintedNFT}
-              alt=""
-              className="h-60 w-60 rounded-lg shadow-lg transition duration-500 ease-in-out hover:scale-105"
-            />
           </div>
         ) : nftLoading === 0 ? (
           <div className="text-lg font-bold">
@@ -404,4 +389,4 @@ const mint = () => {
   )
 }
 
-export default mint
+export default eip2771

@@ -1,8 +1,5 @@
-import Head from 'next/head'
-
 import { useState, useEffect } from 'react'
 import { ethers } from 'ethers'
-import axios from 'axios'
 import { networks } from '../utils/networks'
 
 import NFT from '../utils/EternalNFT.json'
@@ -40,7 +37,7 @@ let biconomy
 const mint = () => {
   const [currentAccount, setCurrentAccount] = useState('')
   const [selectedAddress, setSelectedAddress] = useState('')
-  const [mintedNFT, setMintedNFT] = useState(null)
+  const [nftTx, setNftTx] = useState(null)
   const [network, setNetwork] = useState('')
   const [gasless, setGasless] = useState(0)
 
@@ -191,7 +188,7 @@ const mint = () => {
   const mintMeta = async () => {
     try {
       setNftLoading(0)
-      setMintedNFT(null)
+      setNftTx(null)
       const { ethereum } = window
 
       if (ethereum) {
@@ -210,9 +207,9 @@ const mint = () => {
           message.functionSignature = functionSignature
 
           /*
-          Its important to use eth_signTypedData_v3 and not v4 to get EIP712 signature 
-          because we have used salt in domain data instead of chainId
-        */
+            Its important to use eth_signTypedData_v3 and not v4 to get EIP712 signature 
+            because we have used salt in domain data instead of chainId
+          */
           const dataToSign = JSON.stringify({
             types: {
               EIP712Domain: domainType,
@@ -231,7 +228,7 @@ const mint = () => {
 
           let { r, s, v } = getSignatureParameters(signature)
 
-          sendSignedTransaction(userAddress, functionSignature, r, s, v)
+          sendTransaction(userAddress, functionSignature, r, s, v)
         } else {
           console.log(gasless)
           const tx = await contract.createEternalNFT()
@@ -274,43 +271,30 @@ const mint = () => {
     }
   }
 
-  const sendSignedTransaction = async (userAddress, functionData, r, s, v) => {
+  const sendTransaction = async (userAddress, functionData, r, s, v) => {
     try {
-      let tx = await contract.executeMetaTransaction(
-        userAddress,
-        functionData,
-        r,
-        s,
-        v,
-        { gasLimit: 1000000 }
-      )
-
-      const txData = await tx.wait(1)
-      const tokenId = txData.events[0].args.tokenId.toString()
-      console.log(tokenId)
-      getMintedNFT(tokenId)
-      console.log('Transaction hash : ', tx.hash)
-      console.log(tx)
-    } catch (error) {
-      console.log(error)
-    }
-  }
-
-  // Gets the minted NFT data
-  const getMintedNFT = async (tokenId) => {
-    try {
-      const { ethereum } = window
-
-      if (ethereum) {
-        let tokenUri = await contract.tokenURI(tokenId)
-        let data = await axios.get(tokenUri)
-        let meta = data.data
-
-        setNftLoading(1)
-        setMintedNFT(meta.image)
-      } else {
-        console.log("Ethereum object doesn't exist!")
-      }
+      fetch('https://api.biconomy.io/api/v2/meta-tx/native', {
+        method: 'POST',
+        headers: {
+          'x-api-key': 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
+          'Content-Type': 'application/json;charset=utf-8',
+        },
+        body: JSON.stringify({
+          to: nftContractAddress,
+          apiId: 'ac69688a-a21a-4130-ab18-6b2097e7f215',
+          params: [userAddress, functionData, r, s, v],
+          from: userAddress,
+        }),
+      })
+        .then((response) => response.json())
+        .then(async function (result) {
+          let receipt = await ethersProvider.waitForTransaction(result.txHash)
+          setNftTx(result.txHash)
+          console.log(receipt)
+        })
+        .catch(function (error) {
+          console.log(error)
+        })
     } catch (error) {
       console.log(error)
     }
@@ -324,18 +308,17 @@ const mint = () => {
   useEffect(() => {
     checkIfWalletIsConnected()
 
-    if (currentAccount !== '' && network === 'Kovan') {
-      console.log('init')
-      init()
+    if (currentAccount !== '') {
+      if (network === 'Kovan') {
+        init()
+      } else {
+        switchNetwork()
+      }
     }
   }, [currentAccount, network])
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-gray-200 pt-32 text-gray-900">
-      <Head>
-        <title>Gasless NFT</title>
-        <meta name="viewport" content="initial-scale=1.0, width=device-width" />
-      </Head>
       <div className="trasition transition duration-500 ease-in-out hover:rotate-180 hover:scale-105">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -381,16 +364,18 @@ const mint = () => {
       )}
 
       <div className="mt-10">
-        {mintedNFT ? (
+        {nftTx ? (
           <div className="flex flex-col items-center justify-center">
-            <div className="mb-4 text-center text-lg font-semibold">
-              Your Eternal Domain Character
+            <div className="text-lg font-bold">
+              You can view the transaction{' '}
+              <a
+                href={`https://kovan.etherscan.io/tx/${nftTx}`}
+                target="_blank"
+                className="text-blue-500 underline"
+              >
+                here
+              </a>
             </div>
-            <img
-              src={mintedNFT}
-              alt=""
-              className="h-60 w-60 rounded-lg shadow-lg transition duration-500 ease-in-out hover:scale-105"
-            />
           </div>
         ) : nftLoading === 0 ? (
           <div className="text-lg font-bold">
