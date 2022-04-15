@@ -11,7 +11,7 @@ import { Biconomy } from '@biconomy/mexa'
 
 const nftContractAddress = '0x954961aAa708423828db1047c320521d25EC31cC'
 
-// Initialize Constants
+// this changes for all EIP712Sign variations of custom approach
 const domainType = [
   { name: 'name', type: 'string' },
   { name: 'version', type: 'string' },
@@ -50,8 +50,8 @@ const mint = () => {
   const init = async () => {
     if (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask) {
       setInitLoading(0)
-      //const provider = window['ethereum']
 
+      // We're creating biconomy provider linked to your network of choice where your contract is deployed
       biconomy = new Biconomy(window.ethereum, {
         apiKey: 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
         debug: true,
@@ -209,10 +209,6 @@ const mint = () => {
           message.from = userAddress
           message.functionSignature = functionSignature
 
-          /*
-          Its important to use eth_signTypedData_v3 and not v4 to get EIP712 signature 
-          because we have used salt in domain data instead of chainId
-        */
           const dataToSign = JSON.stringify({
             types: {
               EIP712Domain: domainType,
@@ -223,7 +219,10 @@ const mint = () => {
             message: message,
           })
 
-          // Get the EIP-712 Signature and send the transaction
+          /*
+            Its important to use eth_signTypedData_v3 and not v4 to get EIP712 signature 
+            because we have used salt in domain data instead of chainId
+          */
           let signature = await walletProvider.send('eth_signTypedData_v3', [
             userAddress,
             dataToSign,
