@@ -28,6 +28,7 @@ function MyApp({ Component, pageProps }) {
   const router = useRouter()
 
   const changeRoute = (e) => {
+    console.log(e.value)
     router.push(e.value)
   }
 
