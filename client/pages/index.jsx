@@ -50,7 +50,6 @@ const mint = () => {
   const init = async () => {
     if (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask) {
       setInitLoading(0)
-      //const provider = window['ethereum']
 
       biconomy = new Biconomy(window.ethereum, {
         apiKey: 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
@@ -71,17 +70,17 @@ const mint = () => {
 
       biconomy
         .onEvent(biconomy.READY, async () => {
-          // Initialize your dapp here like getting user accounts etc
+          // Initialize your dapp here like getting user accounts, contracts etc
           contract = new ethers.Contract(
             nftContractAddress,
             NFT.abi,
             biconomy.getSignerByAddress(userAddress)
           )
 
-          // Handle error while initializing mexa
           contractInterface = new ethers.utils.Interface(NFT.abi)
           setInitLoading(1)
         })
+        // Handle error while initializing mexa
         .onEvent(biconomy.ERROR, (error, message) => {
           console.log(message)
           console.log(error)
