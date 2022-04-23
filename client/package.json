@@ -7,15 +7,18 @@
   },
   "dependencies": {
     "@biconomy/mexa": "2.0.30",
+    "@portis/web3": "^4.0.7",
     "@walletconnect/web3-provider": "^1.7.7",
+    "0xsequence": "^0.36.11",
     "axios": "^0.24.0",
     "ethers": "^5.5.1",
+    "fortmatic": "^2.2.1",
     "next": "latest",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-dropdown": "^1.9.2",
     "react-loader-spinner": "^4.0.0",
-    "web3modal": "^1.9.5"
+    "web3modal": "^1.9.7"
   },
   "devDependencies": {
     "@types/node": "17.0.4",

@@ -14,7 +14,7 @@ let ethersProvider, walletProvider, walletSigner
 let contract, contractInterface
 let biconomy
 
-const eip2771 = () => {
+const EIP2771 = () => {
   const [currentAccount, setCurrentAccount] = useState('')
   const [selectedAddress, setSelectedAddress] = useState('')
   const [nftTx, setNftTx] = useState(null)
@@ -301,4 +301,4 @@ const eip2771 = () => {
   )
 }
 
-export default eip2771
+export default EIP2771

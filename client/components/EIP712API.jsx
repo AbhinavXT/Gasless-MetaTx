@@ -34,7 +34,7 @@ let ethersProvider, walletProvider, walletSigner
 let contract, contractInterface
 let biconomy
 
-const mint = () => {
+const EIP712API = () => {
   const [currentAccount, setCurrentAccount] = useState('')
   const [selectedAddress, setSelectedAddress] = useState('')
   const [nftTx, setNftTx] = useState(null)
@@ -376,4 +376,4 @@ const mint = () => {
   )
 }
 
-export default mint
+export default EIP712API
