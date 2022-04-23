@@ -49,17 +49,24 @@ const EIP712 = () => {
   const [nftLoading, setNftLoading] = useState(null)
   const [initLoading, setInitLoading] = useState(null)
 
-  const { walletProvider, signer, connect, web3Modal, isLoggedIn } =
-    useWalletProvider()
+  const {
+    rawEthereumProvider,
+    walletProvider,
+    signer,
+    connect,
+    web3Modal,
+    isLoggedIn,
+  } = useWalletProvider()
 
   const init = async () => {
-    if (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask) {
+    if (walletProvider) {
       setInitLoading(0)
 
       // We're creating biconomy provider linked to your network of choice where your contract is deployed
-      biconomy = new Biconomy(window.ethereum, {
+      biconomy = new Biconomy(rawEthereumProvider, {
         apiKey: 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
         debug: true,
+        walletProvider: rawEthereumProvider,
       })
 
       ethersProvider = new ethers.providers.Web3Provider(biconomy)
@@ -68,10 +75,11 @@ const EIP712 = () => {
         This provider linked to your wallet.
         If needed, substitute your wallet solution in place of window.ethereum 
       */
-      walletProvider = new ethers.providers.Web3Provider(window.ethereum)
+
       walletSigner = walletProvider.getSigner()
 
       let userAddress = await signer.getAddress()
+      console.log('add', userAddress)
       setSelectedAddress(userAddress)
 
       biconomy
@@ -92,7 +100,7 @@ const EIP712 = () => {
           console.log(error)
         })
     } else {
-      console.log('Metamask not installed')
+      console.log('Wallet not installed')
     }
   }
 
@@ -105,49 +113,6 @@ const EIP712 = () => {
       console.log('Error connecting to wallet', error)
     }
   }
-
-  // Opens up a Switch Network metamask window if the user is at any network other than Kovan on connecting wallet
-  // const switchNetwork = async () => {
-  //   if (window.ethereum) {
-  //     try {
-  //       await window.ethereum.request({
-  //         method: 'wallet_switchEthereumChain',
-  //         params: [{ chainId: '0x2a' }], // Check networks.js for hexadecimal network ids
-  //       })
-  //     } catch (error) {
-  //       if (error.code === 4902) {
-  //         try {
-  //           await window.ethereum.request({
-  //             method: 'wallet_addEthereumChain',
-  //             params: [
-  //               {
-  //                 chainId: '0x2a',
-  //                 chainName: 'Kovan',
-  //                 rpcUrls: [
-  //                   'https://kovan.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
-  //                 ],
-  //                 nativeCurrency: {
-  //                   name: 'Ethereum',
-  //                   symbol: 'ETH',
-  //                   decimals: 18,
-  //                 },
-  //                 blockExplorerUrls: ['https://kovan.etherscan.io/'],
-  //               },
-  //             ],
-  //           })
-  //         } catch (error) {
-  //           console.log(error)
-  //         }
-  //       }
-  //       console.log(error)
-  //     }
-  //   } else {
-  //     // If window.ethereum is not found then MetaMask is not installed
-  //     alert(
-  //       'MetaMask is not installed. Please install it to use this app: https://metamask.io/download.html'
-  //     )
-  //   }
-  // }
 
   // Executes a Meta Transaction with EIP-712 Type signature for minting an NFT
   const mintMeta = async () => {
@@ -198,9 +163,7 @@ const EIP712 = () => {
           const tx = await contract.createEternalNFT()
           const txn = await tx.wait()
 
-          const tokenId = txn.events[0].args.tokenId.toString()
-          console.log(tokenId)
-          getMintedNFT(tokenId)
+          console.log(tx.hash)
         }
       } else {
         console.log("Ethereum object doesn't exist!")
@@ -247,31 +210,9 @@ const EIP712 = () => {
       )
 
       const txData = await tx.wait(1)
-      const tokenId = txData.events[0].args.tokenId.toString()
-      console.log(tokenId)
-      getMintedNFT(tokenId)
+
       console.log('Transaction hash : ', tx.hash)
       console.log(tx)
-    } catch (error) {
-      console.log(error)
-    }
-  }
-
-  // Gets the minted NFT data
-  const getMintedNFT = async (tokenId) => {
-    try {
-      const { ethereum } = window
-
-      if (ethereum) {
-        let tokenUri = await contract.tokenURI(tokenId)
-        let data = await axios.get(tokenUri)
-        let meta = data.data
-
-        setNftLoading(1)
-        setMintedNFT(meta.image)
-      } else {
-        console.log("Ethereum object doesn't exist!")
-      }
     } catch (error) {
       console.log(error)
     }
@@ -282,17 +223,7 @@ const EIP712 = () => {
     console.log(gasless)
   }
 
-  //  useEffect(() => {
-  //     ;(async () => {
-  //       await connect().catch((e) => {
-  //         console.error(e)
-  //       })
-  //     })()
-  //   }, [isLoggedIn, connect])
-
   useEffect(() => {
-    //checkIfWalletIsConnected()
-
     if (isLoggedIn) {
       init()
     }

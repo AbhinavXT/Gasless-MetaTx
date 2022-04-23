@@ -114,7 +114,6 @@ describe("NFT Contract", async () => {
 		)
 
 		const txData = await tx.wait(1)
-		const tokenId = txData.events[0].args.tokenId.toString()
 
 		console.log("Transaction hash : ", tx.hash)
 
