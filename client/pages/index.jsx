@@ -11,6 +11,7 @@ import EIP2771 from '../components/EIP2771'
 import EIP2771API from '../components/EIP2771API'
 
 import { WalletProviderProvider } from '../context/WalletProvider'
+import Intro from '../components/Intro'
 
 const mint = () => {
   const [val, setVal] = useState(0)
@@ -48,12 +49,13 @@ const mint = () => {
         <Dropdown
           options={options}
           onChange={(e) => changeApproach(e)}
-          placeholder="Select an approach"
+          placeholder="Select an Approach"
           className="w-96 shadow-lg"
         />
       </div>
       <WalletProviderProvider>
         <div>
+          {val == 0 && <Intro />}
           {val == 1 && <EIP712 />}
           {val == 2 && <EIP712API />}
           {val == 3 && <EIP2771 />}
