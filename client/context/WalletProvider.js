@@ -11,28 +11,28 @@ import { ethers } from 'ethers'
 import Web3Modal from 'web3modal'
 import WalletConnectProvider from '@walletconnect/web3-provider'
 import Portis from '@portis/web3'
-import { sequence } from '0xsequence'
+import Fortmatic from 'fortmatic'
 
 const WalletProviderContext = createContext(null)
 
 const customNetworkOptions = {
-  rpcUrl: 'https://kovan.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
+  rpcUrl: 'https://eth-kovan.alchemyapi.io/v2/Su3Y4WDh89-ygiQHL77KNGsywJ3y2jlR',
   chainId: 6,
 }
 
 let provider
 
 const WalletProviderProvider = (props) => {
-  const [walletProvider, setWalletProvider] = useState()
+  const [walletProvider, setWalletProvider] = useState(null)
 
-  const [signer, setSigner] = useState()
+  const [signer, setSigner] = useState(null)
 
-  const [web3Modal, setWeb3Modal] = useState()
+  const [web3Modal, setWeb3Modal] = useState(null)
 
   const [rawEthereumProvider, setRawEthereumProvider] = useState(null)
 
-  const [accounts, setAccounts] = useState()
-  const [currentChainId, setCurrentChainId] = useState()
+  const [accounts, setAccounts] = useState(null)
+  const [currentChainId, setCurrentChainId] = useState(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
@@ -73,10 +73,11 @@ const WalletProviderProvider = (props) => {
               infuraId: 'Su3Y4WDh89-ygiQHL77KNGsywJ3y2jlR', // required
             },
           },
-          sequence: {
-            package: sequence, // required
+          fortmatic: {
+            package: Fortmatic, // required
             options: {
-              appName: 'Gasless-NFT', // optional
+              key: 'pk_test_8DFCB3A9CCC5F213', // required,
+              network: customNetworkOptions, // if we don't pass it, it will default to localhost:8454
             },
           },
         },
@@ -87,7 +88,7 @@ const WalletProviderProvider = (props) => {
   // because provider does not fire events initially, we need to fetch initial values for current chain from walletProvider
   // subsequent changes to these values however do fire events, and we can just use those event handlers
   useEffect(() => {
-    if (!walletProvider) return // console.log(walletProvider);
+    if (!walletProvider) return
     ;(async () => {
       let { chainId } = await walletProvider.getNetwork()
       let accounts = await walletProvider.listAccounts()
@@ -95,13 +96,6 @@ const WalletProviderProvider = (props) => {
       setCurrentChainId(chainId)
     })()
   }, [walletProvider])
-
-  const reinit = (changedProvider) => {
-    setWalletProvider(new ethers.providers.Web3Provider(changedProvider))
-  }
-
-  // setup event handlers for web3 provider given by web3-modal
-  // this is the provider injected by metamask/fortis/etc
 
   const connect = useCallback(async () => {
     if (!web3Modal) {
@@ -111,75 +105,7 @@ const WalletProviderProvider = (props) => {
     provider = await web3Modal.connect()
     setRawEthereumProvider(provider)
     setWalletProvider(new ethers.providers.Web3Provider(provider))
-
-    console.log('raw', provider)
   }, [web3Modal])
-
-  const disconnect = useCallback(async () => {
-    if (!web3Modal) {
-      console.error('Web3Modal not initialized.')
-      return
-    }
-    web3Modal.clearCachedProvider()
-    setRawEthereumProvider(undefined)
-    setWalletProvider(undefined)
-  }, [web3Modal])
-
-  useEffect(() => {
-    if (!rawEthereumProvider) return
-
-    function handleAccountsChanged(accounts) {
-      console.log('accountsChanged!')
-      setAccounts(accounts.map((a) => a.toLowerCase()))
-      reinit(rawEthereumProvider)
-    }
-
-    // Wallet documentation recommends reloading page on chain change.
-    // Ref: https://docs.metamask.io/guide/ethereum-provider.html#events
-    function handleChainChanged(chainId) {
-      console.log('chainChanged!')
-      if (typeof chainId === 'string') {
-        setCurrentChainId(Number.parseInt(chainId))
-      } else {
-        setCurrentChainId(chainId)
-      }
-      reinit(rawEthereumProvider)
-    }
-
-    function handleConnect(info) {
-      console.log('connect!')
-      setCurrentChainId(info.chainId)
-      reinit(rawEthereumProvider)
-    }
-
-    function handleDisconnect(error) {
-      console.log('disconnect')
-      console.error(error)
-    }
-
-    // Subscribe to accounts change
-    rawEthereumProvider.on('accountsChanged', handleAccountsChanged)
-
-    // Subscribe to network change
-    rawEthereumProvider.on('chainChanged', handleChainChanged)
-
-    // Subscribe to provider connection
-    rawEthereumProvider.on('connect', handleConnect)
-
-    // Subscribe to provider disconnection
-    rawEthereumProvider.on('disconnect', handleDisconnect)
-
-    // Remove event listeners on unmount!
-    return () => {
-      rawEthereumProvider.removeListener(
-        'accountsChanged',
-        handleAccountsChanged
-      )
-      rawEthereumProvider.removeListener('networkChanged', handleChainChanged)
-      rawEthereumProvider.removeListener('connect', handleConnect)
-      rawEthereumProvider.removeListener('disconnect', handleDisconnect)
-    }
-  }, [rawEthereumProvider])
 
   return (
     <WalletProviderContext.Provider
@@ -189,7 +115,6 @@ const WalletProviderProvider = (props) => {
         signer,
         web3Modal,
         connect,
-        disconnect,
         accounts,
         currentChainId,
         isLoggedIn,

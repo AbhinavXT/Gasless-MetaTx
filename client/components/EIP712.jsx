@@ -2,8 +2,6 @@ import Head from 'next/head'
 
 import { useState, useEffect } from 'react'
 import { ethers } from 'ethers'
-import axios from 'axios'
-import { networks } from '../utils/networks'
 
 import NFT from '../utils/EternalNFT.json'
 
@@ -35,16 +33,13 @@ let domainData = {
   salt: ethers.utils.hexZeroPad(ethers.BigNumber.from(42).toHexString(), 32),
 }
 
-let ethersProvider, walletProvider, walletSigner
 let contract, contractInterface
 let biconomy
 
 const EIP712 = () => {
-  const [currentAccount, setCurrentAccount] = useState('')
   const [selectedAddress, setSelectedAddress] = useState('')
-  const [mintedNFT, setMintedNFT] = useState(null)
-  const [network, setNetwork] = useState('')
   const [gasless, setGasless] = useState(0)
+  const [nftTx, setNftTx] = useState(null)
 
   const [nftLoading, setNftLoading] = useState(null)
   const [initLoading, setInitLoading] = useState(null)
@@ -59,27 +54,16 @@ const EIP712 = () => {
   } = useWalletProvider()
 
   const init = async () => {
-    if (walletProvider) {
+    if (typeof window.ethereum !== 'undefined') {
       setInitLoading(0)
 
       // We're creating biconomy provider linked to your network of choice where your contract is deployed
       biconomy = new Biconomy(rawEthereumProvider, {
         apiKey: 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
         debug: true,
-        walletProvider: rawEthereumProvider,
       })
 
-      ethersProvider = new ethers.providers.Web3Provider(biconomy)
-
-      /*
-        This provider linked to your wallet.
-        If needed, substitute your wallet solution in place of window.ethereum 
-      */
-
-      walletSigner = walletProvider.getSigner()
-
       let userAddress = await signer.getAddress()
-      console.log('add', userAddress)
       setSelectedAddress(userAddress)
 
       biconomy
@@ -100,7 +84,7 @@ const EIP712 = () => {
           console.log(error)
         })
     } else {
-      console.log('Wallet not installed')
+      console.log('Wallet not found')
     }
   }
 
@@ -118,7 +102,7 @@ const EIP712 = () => {
   const mintMeta = async () => {
     try {
       setNftLoading(0)
-      setMintedNFT(null)
+      setNftTx(null)
       const { ethereum } = window
 
       if (ethereum) {
@@ -138,13 +122,15 @@ const EIP712 = () => {
 
           const dataToSign = JSON.stringify({
             types: {
-              eipDomain: domainType,
+              EIP712Domain: domainType,
               MetaTransaction: metaTransactionType,
             },
             domain: domainData,
             primaryType: 'MetaTransaction',
             message: message,
           })
+
+          console.log(dataToSign)
 
           /*
             Its important to use eth_signTypedData_v3 and not v4 to get EIP712 signature 
@@ -161,9 +147,9 @@ const EIP712 = () => {
         } else {
           console.log(gasless)
           const tx = await contract.createEternalNFT()
-          const txn = await tx.wait()
+          await tx.wait()
 
-          console.log(tx.hash)
+          setNftTx(tx.hash)
         }
       } else {
         console.log("Ethereum object doesn't exist!")
@@ -209,10 +195,10 @@ const EIP712 = () => {
         { gasLimit: 1000000 }
       )
 
-      const txData = await tx.wait(1)
+      await tx.wait(1)
 
       console.log('Transaction hash : ', tx.hash)
-      console.log(tx)
+      setNftTx(tx.hash)
     } catch (error) {
       console.log(error)
     }
@@ -271,16 +257,18 @@ const EIP712 = () => {
       )}
 
       <div className="mt-10">
-        {mintedNFT ? (
+        {nftTx ? (
           <div className="flex flex-col items-center justify-center">
-            <div className="mb-4 text-center text-lg font-semibold">
-              Your Eternal Domain Character
+            <div className="text-lg font-bold">
+              You can view the transaction{' '}
+              <a
+                href={`https://kovan.etherscan.io/tx/${nftTx}`}
+                target="_blank"
+                className="text-blue-500 underline"
+              >
+                here
+              </a>
             </div>
-            <img
-              src={mintedNFT}
-              alt=""
-              className="h-60 w-60 rounded-lg shadow-lg transition duration-500 ease-in-out hover:scale-105"
-            />
           </div>
         ) : nftLoading === 0 ? (
           <div className="text-lg font-bold">

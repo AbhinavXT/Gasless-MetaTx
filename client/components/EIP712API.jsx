@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { ethers } from 'ethers'
-import { networks } from '../utils/networks'
 
 import NFT from '../utils/EternalNFT.json'
 
 import { Biconomy } from '@biconomy/mexa'
+import { useWalletProvider } from '../context/WalletProvider'
 
 const nftContractAddress = '0x954961aAa708423828db1047c320521d25EC31cC'
 
@@ -30,40 +30,39 @@ let domainData = {
   salt: ethers.utils.hexZeroPad(ethers.BigNumber.from(42).toHexString(), 32),
 }
 
-let ethersProvider, walletProvider, walletSigner
-let contract, contractInterface
+let contract, contractInterface, ethersProvider
 let biconomy
 
 const EIP712API = () => {
-  const [currentAccount, setCurrentAccount] = useState('')
   const [selectedAddress, setSelectedAddress] = useState('')
   const [nftTx, setNftTx] = useState(null)
-  const [network, setNetwork] = useState('')
   const [gasless, setGasless] = useState(0)
 
   const [nftLoading, setNftLoading] = useState(null)
   const [initLoading, setInitLoading] = useState(null)
 
+  const {
+    rawEthereumProvider,
+    walletProvider,
+    signer,
+    connect,
+    web3Modal,
+    isLoggedIn,
+  } = useWalletProvider()
+
   const init = async () => {
-    if (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask) {
+    if (typeof window.ethereum !== 'undefined') {
       setInitLoading(0)
 
       // We're creating biconomy provider linked to your network of choice where your contract is deployed
-      biconomy = new Biconomy(window.ethereum, {
+      biconomy = new Biconomy(rawEthereumProvider, {
         apiKey: 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
         debug: true,
       })
 
       ethersProvider = new ethers.providers.Web3Provider(biconomy)
 
-      /*
-        This provider linked to your wallet.
-        If needed, substitute your wallet solution in place of window.ethereum 
-      */
-      walletProvider = new ethers.providers.Web3Provider(window.ethereum)
-      walletSigner = walletProvider.getSigner()
-
-      let userAddress = await walletSigner.getAddress()
+      let userAddress = await signer.getAddress()
       setSelectedAddress(userAddress)
 
       biconomy
@@ -84,103 +83,17 @@ const EIP712API = () => {
           console.log(error)
         })
     } else {
-      console.log('Metamask not installed')
-    }
-  }
-
-  // Checks if wallet is connected to the correct network
-  const checkIfWalletIsConnected = async () => {
-    const { ethereum } = window
-
-    if (!ethereum) {
-      console.log('Make sure you have metamask!')
-      return
-    } else {
-      console.log('We have the ethereum object', ethereum)
-    }
-
-    const accounts = await ethereum.request({ method: 'eth_accounts' })
-
-    if (accounts.length !== 0) {
-      const account = accounts[0]
-      console.log('Found an authorized account:', account)
-      setCurrentAccount(account)
-    } else {
-      console.log('No authorized account found')
-    }
-
-    // This is the new part, we check the user's network chain ID
-    const chainId = await ethereum.request({ method: 'eth_chainId' })
-    setNetwork(networks[chainId])
-
-    ethereum.on('chainChanged', handleChainChanged)
-
-    // Reload the page when they change networks
-    function handleChainChanged(_chainId) {
-      window.location.reload()
+      console.log('Wallet not found')
     }
   }
 
   // Calls Metamask to connect wallet on clicking Connect Wallet button
   const connectWallet = async () => {
     try {
-      const { ethereum } = window
-
-      if (!ethereum) {
-        console.log('Metamask not detected')
-        return
-      }
-
-      const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
-
-      console.log('Found account', accounts[0])
-      setCurrentAccount(accounts[0])
-      switchNetwork()
+      await web3Modal.clearCachedProvider()
+      connect()
     } catch (error) {
-      console.log('Error connecting to metamask', error)
-    }
-  }
-
-  // Opens up a Switch Network metamask window if the user is at any network other than Kovan on connecting wallet
-  const switchNetwork = async () => {
-    if (window.ethereum) {
-      try {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x2a' }], // Check networks.js for hexadecimal network ids
-        })
-      } catch (error) {
-        if (error.code === 4902) {
-          try {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [
-                {
-                  chainId: '0x2a',
-                  chainName: 'Kovan',
-                  rpcUrls: [
-                    'https://kovan.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
-                  ],
-                  nativeCurrency: {
-                    name: 'Ethereum',
-                    symbol: 'ETH',
-                    decimals: 18,
-                  },
-                  blockExplorerUrls: ['https://kovan.etherscan.io/'],
-                },
-              ],
-            })
-          } catch (error) {
-            console.log(error)
-          }
-        }
-        console.log(error)
-      }
-    } else {
-      // If window.ethereum is not found then MetaMask is not installed
-      alert(
-        'MetaMask is not installed. Please install it to use this app: https://metamask.io/download.html'
-      )
+      console.log('Error connecting to wallet', error)
     }
   }
 
@@ -231,11 +144,7 @@ const EIP712API = () => {
         } else {
           console.log(gasless)
           const tx = await contract.createEternalNFT()
-          const txn = await tx.wait()
-
-          const tokenId = txn.events[0].args.tokenId.toString()
-          console.log(tokenId)
-          getMintedNFT(tokenId)
+          await tx.wait()
         }
       } else {
         console.log("Ethereum object doesn't exist!")
@@ -304,21 +213,15 @@ const EIP712API = () => {
   }
 
   useEffect(() => {
-    checkIfWalletIsConnected()
-
-    if (currentAccount !== '') {
-      if (network === 'Kovan') {
-        init()
-      } else {
-        switchNetwork()
-      }
+    if (isLoggedIn) {
+      init()
     }
-  }, [currentAccount, network])
+  }, [isLoggedIn])
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-gray-200 pt-12 text-gray-900">
       <h2 className="mt-12 text-3xl font-bold">Mint your Character!</h2>
-      {currentAccount === '' ? (
+      {isLoggedIn === false ? (
         <button
           className="mb-10 mt-20 rounded-lg bg-black py-3 px-12 text-2xl font-bold text-gray-300 shadow-lg transition duration-500 ease-in-out hover:scale-105"
           onClick={connectWallet}

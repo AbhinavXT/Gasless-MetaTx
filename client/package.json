@@ -9,7 +9,6 @@
     "@biconomy/mexa": "2.0.30",
     "@portis/web3": "^4.0.7",
     "@walletconnect/web3-provider": "^1.7.7",
-    "0xsequence": "^0.36.11",
     "axios": "^0.24.0",
     "ethers": "^5.5.1",
     "fortmatic": "^2.2.1",

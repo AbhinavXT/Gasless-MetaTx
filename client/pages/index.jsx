@@ -11,7 +11,6 @@ import EIP2771 from '../components/EIP2771'
 import EIP2771API from '../components/EIP2771API'
 
 import { WalletProviderProvider } from '../context/WalletProvider'
-import { BiconomyProvider } from '../context/Biconomy'
 
 const mint = () => {
   const [val, setVal] = useState(0)

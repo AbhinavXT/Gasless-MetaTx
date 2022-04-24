@@ -7,6 +7,7 @@ import { networks } from '../utils/networks'
 import NFT from '../utils/EternalNFT2771.json'
 
 import { Biconomy } from '@biconomy/mexa'
+import { useWalletProvider } from '../context/WalletProvider'
 
 const nftContractAddress = '0xf9fB1C88Fb9f89E1BAbb1d3C8Ed50b35785FcE31'
 
@@ -19,47 +20,49 @@ import {
   getBiconomyForwarderConfig,
 } from '../api-helper/forwarderHelper'
 
-let ethersProvider, walletProvider, walletSigner
 let contract, contractInterface
 let biconomy
 
 const EIP2771API = () => {
-  const [currentAccount, setCurrentAccount] = useState('')
   const [selectedAddress, setSelectedAddress] = useState('')
   const [nftTx, setNftTx] = useState(null)
-  const [network, setNetwork] = useState('')
+  const [gasless, setGasless] = useState(0)
 
   const [nftLoading, setNftLoading] = useState(null)
   const [initLoading, setInitLoading] = useState(null)
-  const [gasless, setGasless] = useState(0)
+
+  const {
+    rawEthereumProvider,
+    walletProvider,
+    signer,
+    connect,
+    web3Modal,
+    isLoggedIn,
+  } = useWalletProvider()
 
   const init = async () => {
-    if (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask) {
+    if (typeof window.ethereum !== 'undefined') {
       setInitLoading(0)
 
-      biconomy = new Biconomy(window.ethereum, {
+      // We're creating biconomy provider linked to your network of choice where your contract is deployed
+      biconomy = new Biconomy(rawEthereumProvider, {
         apiKey: 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
         debug: true,
       })
 
-      // two providers one with biconomy andd other for the wallet signing the transaction
-      ethersProvider = new ethers.providers.Web3Provider(biconomy)
-
-      walletProvider = new ethers.providers.Web3Provider(window.ethereum)
-      walletSigner = walletProvider.getSigner()
-
-      let userAddress = await walletSigner.getAddress()
+      let userAddress = await signer.getAddress()
       setSelectedAddress(userAddress)
 
-      // init dApp stuff like contracts and interface
       biconomy
         .onEvent(biconomy.READY, async () => {
+          // Initialize your dapp here like getting user accounts etc
           contract = new ethers.Contract(
             nftContractAddress,
             NFT.abi,
             biconomy.getSignerByAddress(userAddress)
           )
 
+          // Handle error while initializing mexa
           contractInterface = new ethers.utils.Interface(NFT.abi)
           setInitLoading(1)
         })
@@ -68,105 +71,17 @@ const EIP2771API = () => {
           console.log(error)
         })
     } else {
-      console.log('Metamask not installed')
-    }
-  }
-
-  // Checks if wallet is connected to the correct network
-  const checkIfWalletIsConnected = async () => {
-    const { ethereum } = window
-
-    if (!ethereum) {
-      console.log('Make sure you have metamask!')
-      return
-    } else {
-      console.log('We have the ethereum object', ethereum)
-    }
-
-    const accounts = await ethereum.request({ method: 'eth_accounts' })
-
-    if (accounts.length !== 0) {
-      const account = accounts[0]
-      console.log('Found an authorized account:', account)
-      setCurrentAccount(account)
-    } else {
-      console.log('No authorized account found')
-    }
-
-    // This is the new part, we check the user's network chain ID
-    const chainId = await ethereum.request({ method: 'eth_chainId' })
-    setNetwork(networks[chainId])
-
-    ethereum.on('chainChanged', handleChainChanged)
-
-    // Reload the page when they change networks
-    function handleChainChanged(_chainId) {
-      window.location.reload()
+      console.log('Wallet not found')
     }
   }
 
   // Calls Metamask to connect wallet on clicking Connect Wallet button
   const connectWallet = async () => {
     try {
-      const { ethereum } = window
-
-      if (!ethereum) {
-        console.log('Metamask not detected')
-        return
-      }
-
-      const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
-
-      console.log('Found account', accounts[0])
-      setCurrentAccount(accounts[0])
-      switchNetwork()
+      await web3Modal.clearCachedProvider()
+      connect()
     } catch (error) {
-      console.log('Error connecting to metamask', error)
-    }
-  }
-
-  const switchNetwork = async () => {
-    if (window.ethereum) {
-      try {
-        // Try to switch to the Mumbai testnet
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x2a' }], // Check networks.js for hexadecimal network ids
-        })
-      } catch (error) {
-        // This error code means that the chain we want has not been added to MetaMask
-        // In this case we ask the user to add it to their MetaMask
-        if (error.code === 4902) {
-          try {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [
-                {
-                  chainId: '0x2a',
-                  chainName: 'Kovan',
-                  rpcUrls: [
-                    'https://kovan.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
-                  ],
-                  nativeCurrency: {
-                    name: 'Ethereum',
-                    symbol: 'ETH',
-                    decimals: 18,
-                  },
-                  blockExplorerUrls: ['https://kovan.etherscan.io/'],
-                },
-              ],
-            })
-          } catch (error) {
-            console.log(error)
-          }
-        }
-        console.log(error)
-      }
-    } else {
-      // If window.ethereum is not found then MetaMask is not installed
-      alert(
-        'MetaMask is not installed. Please install it to use this app: https://metamask.io/download.html'
-      )
+      console.log('Error connecting to wallet', error)
     }
   }
 
@@ -213,10 +128,10 @@ const EIP2771API = () => {
             batchNonce,
             data,
           })
-          console.log(req)
+          //console.log(req)
 
           const domainSeparator = await getDomainSeperator(42)
-          console.log(domainSeparator)
+          //console.log(domainSeparator)
 
           const dataToSign = await getDataToSignForEIP712(req, 42)
           walletProvider
@@ -253,7 +168,7 @@ const EIP2771API = () => {
     domainSeparator,
     signatureType,
   }) => {
-    if (ethersProvider && contract) {
+    if (rawEthereumProvider && contract) {
       let params
       if (domainSeparator) {
         params = [request, domainSeparator, sig]
@@ -279,13 +194,7 @@ const EIP2771API = () => {
           .then(function (result) {
             console.log(result)
 
-            return result.txHash
-          })
-          .then(function (hash) {
-            ethersProvider.once(hash, (transaction) => {
-              console.log(transaction)
-              setNftTx(hash)
-            })
+            setNftTx(result.txHash)
           })
           .catch(function (error) {
             console.log(error)
@@ -302,16 +211,10 @@ const EIP2771API = () => {
   }
 
   useEffect(() => {
-    checkIfWalletIsConnected()
-
-    if (currentAccount !== '') {
-      if (network === 'Kovan') {
-        init()
-      } else {
-        switchNetwork()
-      }
+    if (isLoggedIn) {
+      init()
     }
-  }, [currentAccount, network])
+  }, [isLoggedIn])
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-gray-200 pt-12 text-gray-900">
@@ -322,7 +225,7 @@ const EIP2771API = () => {
 
       <h2 className="mt-12 text-3xl font-bold">Mint your Character!</h2>
 
-      {currentAccount === '' ? (
+      {isLoggedIn === false ? (
         <button
           className="mb-10 mt-20 rounded-lg bg-black py-3 px-12 text-2xl font-bold text-gray-300 shadow-lg transition duration-500 ease-in-out hover:scale-105"
           onClick={connectWallet}
