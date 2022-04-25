@@ -12,6 +12,7 @@
 	},
 	"dependencies": {
 		"@metamask/eth-sig-util": "^4.0.0",
-		"eth-sig-util": "^3.0.1"
+		"eth-sig-util": "^3.0.1",
+		"ethereumjs-abi": "^0.6.8"
 	}
 }

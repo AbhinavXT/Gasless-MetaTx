@@ -8,11 +8,6 @@ const kovanUrl = process.env.ALCHEMY_KOVAN_URL
 module.exports = {
 	solidity: "0.8.10",
 	networks: {
-		// rinkeby: {
-		// 	url: rinkebyUrl,
-		// 	accounts:
-		// 		process.env.ACCOUNT_KEY !== undefined ? [process.env.ACCOUNT_KEY] : [],
-		// },
 		hardhat: {
 			chainId: 1337,
 		},
