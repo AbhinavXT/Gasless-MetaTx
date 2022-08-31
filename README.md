@@ -11,7 +11,7 @@
 
 ## Deployed Website url
 
-https://gasless-nft.vercel.app/
+https://gasless-metatx.vercel.app/
 
 ## Deployed Contract Address
 
