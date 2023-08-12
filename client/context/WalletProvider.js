@@ -16,8 +16,8 @@ import Fortmatic from 'fortmatic'
 const WalletProviderContext = createContext(null)
 
 const customNetworkOptions = {
-  rpcUrl: 'https://eth-kovan.alchemyapi.io/v2/Su3Y4WDh89-ygiQHL77KNGsywJ3y2jlR',
-  chainId: 6,
+  rpcUrl: 'https://polygon-mumbai.g.alchemy.com/v2/P8LwlG2oErzKvA8l01o-RU8ECljSMQ3Q',
+  chainId: 80001,
 }
 
 let provider

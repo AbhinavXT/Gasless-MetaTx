@@ -1,7 +1,7 @@
 import { ethers } from 'ethers'
 const abi = require('ethereumjs-abi')
 let helperAttributes = {}
-let supportedNetworks = [42]
+let supportedNetworks = [80001]
 helperAttributes.ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 helperAttributes.baseURL = 'https://api.biconomy.io'

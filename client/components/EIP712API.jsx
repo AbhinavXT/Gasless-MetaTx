@@ -6,7 +6,7 @@ import NFT from '../utils/EternalNFT.json'
 import { Biconomy } from '@biconomy/mexa'
 import { useWalletProvider } from '../context/WalletProvider'
 
-const nftContractAddress = '0x954961aAa708423828db1047c320521d25EC31cC'
+const nftContractAddress = '0x07476Cb24E86EfFA883d6275AEa52F70e042Bf3F'
 
 // this changes for all EIP712Sign variations of custom approach
 const domainType = [
@@ -22,12 +22,12 @@ const metaTransactionType = [
   { name: 'functionSignature', type: 'bytes' },
 ]
 
-// replace the chainId 42 if network is not kovan
+// replace the chainId 80001 if network is not mumbai
 let domainData = {
   name: 'EternalNFT',
   version: '1',
   verifyingContract: nftContractAddress,
-  salt: ethers.utils.hexZeroPad(ethers.BigNumber.from(42).toHexString(), 32),
+  salt: ethers.utils.hexZeroPad(ethers.BigNumber.from(80001).toHexString(), 32),
 }
 
 let contract, contractInterface, ethersProvider
@@ -56,7 +56,7 @@ const EIP712API = () => {
 
       // We're creating biconomy provider linked to your network of choice where your contract is deployed
       biconomy = new Biconomy(rawEthereumProvider, {
-        apiKey: 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
+        apiKey: 'IVJtAaJ66.e7b33af9-0c7c-4223-a5b4-07469e8653f4',
         debug: true,
       })
 
@@ -184,12 +184,12 @@ const EIP712API = () => {
       fetch('https://api.biconomy.io/api/v2/meta-tx/native', {
         method: 'POST',
         headers: {
-          'x-api-key': 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
+          'x-api-key': 'IVJtAaJ66.e7b33af9-0c7c-4223-a5b4-07469e8653f4',
           'Content-Type': 'application/json;charset=utf-8',
         },
         body: JSON.stringify({
           to: nftContractAddress,
-          apiId: 'ac69688a-a21a-4130-ab18-6b2097e7f215',
+          apiId: '9bbb5f30-0dbe-4344-a95c-c485bf9690b9	',
           params: [userAddress, functionData, r, s, v],
           from: userAddress,
         }),
@@ -259,7 +259,7 @@ const EIP712API = () => {
             <div className="text-lg font-bold">
               You can view the transaction{' '}
               <a
-                href={`https://kovan.etherscan.io/tx/${nftTx}`}
+                href={`https://mumbai.polygonscan.com/tx/${nftTx}`}
                 target="_blank"
                 className="text-blue-500 underline"
               >

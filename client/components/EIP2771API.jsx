@@ -9,7 +9,7 @@ import NFT from '../utils/EternalNFT2771.json'
 import { Biconomy } from '@biconomy/mexa'
 import { useWalletProvider } from '../context/WalletProvider'
 
-const nftContractAddress = '0xf9fB1C88Fb9f89E1BAbb1d3C8Ed50b35785FcE31'
+const nftContractAddress = '0x558b075114dB791a326A52E6E87A0A60c2Af15d9'
 
 import {
   helperAttributes,
@@ -46,7 +46,7 @@ const EIP2771API = () => {
 
       // We're creating biconomy provider linked to your network of choice where your contract is deployed
       biconomy = new Biconomy(rawEthereumProvider, {
-        apiKey: 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
+        apiKey: 'IVJtAaJ66.e7b33af9-0c7c-4223-a5b4-07469e8653f4',
         debug: true,
       })
 
@@ -105,7 +105,7 @@ const EIP2771API = () => {
             data: data,
           })
 
-          let forwarder = await getBiconomyForwarderConfig(42)
+          let forwarder = await getBiconomyForwarderConfig(80001)
           let forwarderContract = new ethers.Contract(
             forwarder.address,
             forwarder.abi,
@@ -130,10 +130,10 @@ const EIP2771API = () => {
           })
           //console.log(req)
 
-          const domainSeparator = await getDomainSeperator(42)
+          const domainSeparator = await getDomainSeperator(80001)
           //console.log(domainSeparator)
 
-          const dataToSign = await getDataToSignForEIP712(req, 42)
+          const dataToSign = await getDataToSignForEIP712(req, 80001)
           walletProvider
             .send('eth_signTypedData_v3', [userAddress, dataToSign])
             .then((sig) => {
@@ -179,12 +179,12 @@ const EIP2771API = () => {
         fetch(`https://api.biconomy.io/api/v2/meta-tx/native`, {
           method: 'POST',
           headers: {
-            'x-api-key': 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
+            'x-api-key': 'IVJtAaJ66.e7b33af9-0c7c-4223-a5b4-07469e8653f4',
             'Content-Type': 'application/json;charset=utf-8',
           },
           body: JSON.stringify({
             to: nftContractAddress,
-            apiId: '9283930d-a360-462e-ad8e-6fe4f3b4c463',
+            apiId: '7bc13499-7ab1-430f-b670-1863172110ba	',
             params: params,
             from: userAddress,
             signatureType: signatureType,
@@ -263,7 +263,7 @@ const EIP2771API = () => {
             <div className="text-lg font-bold">
               You can view the transaction{' '}
               <a
-                href={`https://kovan.etherscan.io/tx/${nftTx}`}
+                href={`https://mumbai.polygonscan.com/tx/${nftTx}`}
                 target="_blank"
                 className="text-blue-500 underline"
               >

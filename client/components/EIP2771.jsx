@@ -37,7 +37,7 @@ const EIP2771 = () => {
 
       // We're creating biconomy provider linked to your network of choice where your contract is deployed
       biconomy = new Biconomy(rawEthereumProvider, {
-        apiKey: 'To_rQOQlG.123aa12d-4e94-4ae3-bdcd-c6267d1b6b74',
+        apiKey: 'IVJtAaJ66.e7b33af9-0c7c-4223-a5b4-07469e8653f4',
         debug: true,
       })
 
@@ -190,7 +190,7 @@ const EIP2771 = () => {
             <div className="text-lg font-bold">
               You can view the transaction{' '}
               <a
-                href={`https://kovan.etherscan.io/tx/${nftTx}`}
+                href={`https://mumbai.polygonscan.com/tx/${nftTx}`}
                 target="_blank"
                 className="text-blue-500 underline"
               >
